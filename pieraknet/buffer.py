@@ -137,14 +137,11 @@ class Buffer(BytesIO):
             raise UnsupportedIPVersion('IP version is not 4')
 
     def write_address(self, address: tuple):
-        if address[2] == 4:
-            self.write_byte(address[2])
-            hostname_parts: list = address[0].split('.')
-            for part in hostname_parts:
-                self.write_byte(~int(part) & 0xff)
-            self.write_short(address[1])
-        else:
-            raise UnsupportedIPVersion('IP version is not 4')
+        self.write_byte(4)
+        hostname_parts: list = address[0].split('.')
+        for part in hostname_parts:
+            self.write_byte(~int(part) & 0xff)
+        self.write_short(address[1])
 
     def read_var_int(self):
         value: int = 0
