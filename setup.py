@@ -8,7 +8,7 @@ def readme():
 
 setup(
     name='PieRakNet',
-    version='1.0.0',
+    version='1.0',
     author='lapismyt',
     author_email='nikitagavrilin005@gmail.com',
     description='RakNet implementation, written in Python. Created for PieMC.',
@@ -22,7 +22,7 @@ setup(
         'License :: OSI Approved :: GPL-3.0 License',
         'Operating System :: OS Independent'
     ],
-    keywords='example python',
+    keywords='python python3 raknet rak-net mcpe bedrock rak_net',
     project_urls={
         'GitHub': 'https://github.com/PieMC-Dev/PieRakNet',
         'Example': 'https://github.com/PieMC-Dev/PieRakNet/tree/main/EXAMPLE.md',
