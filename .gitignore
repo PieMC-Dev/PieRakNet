@@ -38,3 +38,8 @@ test.py
 *.vcxproj
 *.vcxproj.*
 .vs/
+
+# PyPI
+dist
+build
+*.egg-info

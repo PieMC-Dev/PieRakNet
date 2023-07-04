@@ -18,9 +18,13 @@ setup(
     packages=find_packages(),
     # install_requires=[],
     classifiers=[
+        'Development Status :: 3 - Alpha',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Programming Language :: Python :: 3.11',
-        'License :: OSI Approved :: GPL-3.0 License',
-        'Operating System :: OS Independent'
+        'Topic :: Internet',
+        'Topic :: Games/Entertainment',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Topic :: System :: Networking'
     ],
     keywords='python python3 raknet rak-net mcpe bedrock rak_net',
     project_urls={
