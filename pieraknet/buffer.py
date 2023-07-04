@@ -132,7 +132,7 @@ class Buffer(BytesIO):
                 hostname_parts.append(str(~self.read_byte() & 0xff))
             hostname = ".".join(hostname_parts)
             port = self.read_unsigned_short()
-            return hostname, port, ipv
+            return hostname, port
         else:
             raise UnsupportedIPVersion('IP version is not 4')
 

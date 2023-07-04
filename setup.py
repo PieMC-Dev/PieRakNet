@@ -16,7 +16,7 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/PieMC-Dev/PieRakNet',
     packages=find_packages(),
-    install_requires=[],
+    # install_requires=[],
     classifiers=[
         'Programming Language :: Python :: 3.11',
         'License :: OSI Approved :: GPL-3.0 License',
