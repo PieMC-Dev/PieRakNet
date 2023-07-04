@@ -1,2 +1,2 @@
 # PieRakNet
-RakNet implementation on C++, for using with Python
+RakNet implementation, written in Python. Created for PieMC.
