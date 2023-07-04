@@ -26,9 +26,8 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: System :: Networking'
     ],
-    keywords='python python3 raknet rak-net mcpe bedrock rak_net',
+    keywords='python python3 raknet rak-net mcpe bedrock rak_net piemc pieraknet',
     project_urls={
-        'GitHub': 'https://github.com/PieMC-Dev/PieRakNet',
         'Example': 'https://github.com/PieMC-Dev/PieRakNet/tree/main/EXAMPLE.md',
         'Developer': 'https://github.com/PieMC-Dev'
     },
