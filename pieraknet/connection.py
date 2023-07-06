@@ -6,6 +6,7 @@ from pieraknet.handlers.connection_request import ConnectionRequestHandler
 from pieraknet.handlers.online_ping import OnlinePingHandler
 from pieraknet.packets.online_ping import OnlinePing
 from pieraknet.packets.new_incoming_connection import NewIncomingConnection
+from pieraknet.packets.disconnect import Disconnect
 
 
 class Connection:
@@ -129,10 +130,14 @@ class Connection:
                 self.add_to_queue(new_frame, False)
             elif packet.body[0] == ProtocolInfo.DISCONNECT:
                 self.disconnect()
+            elif packet.body[0] == ProtocolInfo.GAME_PACKET:
+                if hasattr(self.server, "interface"):
+                    if hasattr(self.server.interface, "on_game_packet"):
+                        self.server.interface.on_game_packet(packet, self)
             else:
                 if hasattr(self.server, "interface"):
-                    if hasattr(self.server.interface, "on_frame"):
-                        self.server.interface.on_frame(packet, self)
+                    if hasattr(self.server.interface, "on_unknown_packet"):
+                        self.server.interface.on_unknown_packet(packet, self)
 
     def send_queue(self):
         if len(self.queue.frames) > 0:
@@ -208,7 +213,9 @@ class Connection:
     def disconnect(self):
         new_frame = Frame()
         new_frame.reliability = 0
-        new_frame.body = b"\x15"
+        disconnect_packet = Disconnect()
+        disconnect_packet.encode()
+        new_frame.body = disconnect_packet.getvalue()
         self.add_to_queue(new_frame)
         self.server.remove_connection(self.address)
         if hasattr(self.server, "interface"):
