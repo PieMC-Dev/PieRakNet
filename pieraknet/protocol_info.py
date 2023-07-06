@@ -14,5 +14,8 @@ class ProtocolInfo:
     DISCONNECT = 0x15
     INCOMPATIBLE_PROTOCOL_VERSION = 0x19
     FRAME_SET = 0x80
+    FRAME_SET_0 = 0x80
+    FRAME_SET_F = 0x8d
     NACK = 0xa0
     ACK = 0xc0
+    GAME_PACKET = 0xfe

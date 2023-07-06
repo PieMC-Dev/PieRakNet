@@ -1,5 +1,6 @@
 from pieraknet.packets.open_connection_request_2 import OpenConnectionRequest2
 from pieraknet.packets.open_connection_reply_2 import OpenConnectionReply2
+from pieraknet.connection import Connection
 
 
 class OpenConnectionRequest2Handler:
@@ -16,7 +17,7 @@ class OpenConnectionRequest2Handler:
         server.logger.debug(f"- Client GUID: {str(packet.client_guid)}")
 
         new_packet = OpenConnectionReply2()
-        new_packet.magic = packet.magic # TODO: server.magic
+        new_packet.magic = packet.magic  # TODO: server.magic
         new_packet.server_guid = server.guid
         new_packet.client_address = address
         new_packet.mtu_size = packet.mtu_size
@@ -32,3 +33,6 @@ class OpenConnectionRequest2Handler:
         server.logger.debug(f"- Server GUID: {str(new_packet.server_guid)}")
         server.logger.debug(f"- Client Address: {str(new_packet.client_address)}")
         server.logger.debug(f"- MTU Size: {str(new_packet.mtu_size)}")
+
+        connection = Connection(address, server, packet.mtu_size, packet.client_guid)
+        server.add_connection(connection)

@@ -34,6 +34,11 @@ class BuffError(Exception):
 
 
 class Buffer(BytesIO):
+    def feos(self):
+        if len(bytes(self.getvalue()).decode()[self.tell()]) == 0:
+            return True
+        else:
+            return False
 
     def read_packet_id(self):  # Read Packet ID
         return self.read_byte()

@@ -12,4 +12,4 @@ class OpenConnectionRequest1(Packet):
     def decode_payload(self):
         self.magic = self.read_magic()
         self.protocol_version = int(self.read_byte())
-        self.mtu_size = len(self.read())
+        self.mtu_size = len(self.read()) + 46
