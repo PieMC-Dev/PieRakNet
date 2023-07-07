@@ -11,22 +11,14 @@ from pieraknet.handlers.open_connection_request_1 import OpenConnectionRequest1H
 from pieraknet.packets.open_connection_request_2 import OpenConnectionRequest2
 from pieraknet.handlers.open_connection_request_2 import OpenConnectionRequest2Handler
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.ERROR)
-filehandler = logging.FileHandler('pieraknet-latest', 'w', 'utf-8')
-streamhandler = logging.StreamHandler()
-formatter = logging.Formatter("[%(name)s] [%(asctime)s] [%(levelname)s] : %(message)s")
-filehandler.setFormatter(formatter)
-streamhandler.setFormatter(formatter)
-logger.addHandler(filehandler)
-logger.addHandler(streamhandler)
 
-
-class ConnectionNotFound(Exception): pass
+class ConnectionNotFound(Exception):
+    pass
 
 
 class Server:
-    def __init__(self, hostname='0.0.0.0', port=19132, logger: logging.Logger = logger):
+    def __init__(self, hostname='0.0.0.0', port=19132, logger=logging.getLogger(__name__)):
+        self.logger = logger
         self.start_time = round(time.time(), 2)
         self.hostname = hostname
         self.port = port
@@ -39,10 +31,9 @@ class Server:
         self.start_time = time.time()
         self.maxsize = 4096
         self.magic = b'\x00\xff\xff\x00\xfe\xfe\xfe\xfe\xfd\xfd\xfd\xfd\x12\x34\x56\x78'
-        self.running = True
-        self.logger = logger
+        self.running = False
         self.timeout = 15
-        logger.info('Server initialized.')
+        self.logger.info('Server initialized.')
 
     def get_time_ms(self):
         return round(time.time() - self.start_time, 4)
@@ -63,27 +54,33 @@ class Server:
         self.connections.append(connection)
 
     def start(self):
+        self.running = True
         self.socket.bind((self.hostname, self.port))
         self.logger.info(f"Server started ({str(self.get_time_ms())}s).")
         while self.running:
-            data, client = self.socket.recvfrom(self.maxsize)
-            if data[0] in [ProtocolInfo.OFFLINE_PING, ProtocolInfo.OFFLINE_PING_OPEN_CONNECTIONS]:
-                packet: OfflinePing = OfflinePing(data)
-                OfflinePingHandler.handle(packet, self, client)
-            elif data[0] == ProtocolInfo.OPEN_CONNECTION_REQUEST_1:
-                packet: OpenConnectionRequest1 = OpenConnectionRequest1(data)
-                OpenConnectionRequest1Handler.handle(packet, self, client)
-            elif data[0] == ProtocolInfo.OPEN_CONNECTION_REQUEST_2:
-                packet: OpenConnectionRequest2 = OpenConnectionRequest2(data)
-                OpenConnectionRequest2Handler.handle(packet, self, client)
-            elif ProtocolInfo.FRAME_SET_0 <= data[0] <= ProtocolInfo.FRAME_SET_F:
-                connection = self.get_connection(client)
+            time.sleep(1 / 20)
+            try:
+                data, client = self.socket.recvfrom(self.maxsize)
+            except OSError:
+                pass
+            else:
+                if data[0] in [ProtocolInfo.OFFLINE_PING, ProtocolInfo.OFFLINE_PING_OPEN_CONNECTIONS]:
+                    packet: OfflinePing = OfflinePing(data)
+                    OfflinePingHandler.handle(packet, self, client)
+                elif data[0] == ProtocolInfo.OPEN_CONNECTION_REQUEST_1:
+                    packet: OpenConnectionRequest1 = OpenConnectionRequest1(data)
+                    OpenConnectionRequest1Handler.handle(packet, self, client)
+                elif data[0] == ProtocolInfo.OPEN_CONNECTION_REQUEST_2:
+                    packet: OpenConnectionRequest2 = OpenConnectionRequest2(data)
+                    OpenConnectionRequest2Handler.handle(packet, self, client)
+                elif ProtocolInfo.FRAME_SET_0 <= data[0] <= ProtocolInfo.FRAME_SET_F:
+                    connection = self.get_connection(client)
+                    connection.handle(data)
 
     def stop(self):
         self.running = False
         self.socket.close()
         self.logger.info('Server stopped.')
-        exit(0)
 
 
 if __name__ == '__main__':

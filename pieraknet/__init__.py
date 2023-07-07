@@ -1,3 +1,3 @@
-from connection import Connection
-from server import Server
-from buffer import Buffer
+from pieraknet.connection import Connection
+from pieraknet.server import Server
+from pieraknet.buffer import Buffer
