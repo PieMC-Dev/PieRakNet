@@ -14,6 +14,7 @@ class OfflinePong(Packet):
         self.write_long(self.client_timestamp)
         self.write_long(self.server_guid)
         if not (self.magic is bytes):
+            self.magic = str(self.magic)
             self.magic: bytes = self.magic.encode('utf-8')
         self.write_magic(self.magic)
         if not (self.server_name is bytes):
