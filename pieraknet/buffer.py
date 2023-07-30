@@ -47,20 +47,20 @@ class Buffer(BytesIO):
         self.write_byte(str(data))
 
     def read_byte(self):
-        return struct.unpack('b', self.read(1))[0]
+        return struct.unpack('B', self.read(1))[0]
 
     def write_byte(self, data):
         if not isinstance(data, bytes):
             data = str(data).encode()
-        self.write(struct.pack('b', int(data)))
+        self.write(struct.pack('B', int(data)))
 
     def read_ubyte(self):
-        return struct.unpack('B', self.read(1))[0]
+        return struct.unpack('<B', self.read(1))[0]
 
     def write_ubyte(self, data):
         if not isinstance(data, bytes):
             data = data.encode('utf-8')
-        self.write(struct.pack('B', data))
+        self.write(struct.pack('<B', data))
 
     def read_short(self):
         return struct.unpack('>h', self.read(2))[0]
