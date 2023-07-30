@@ -39,7 +39,7 @@ class Server:
         return round(time.time() - self.start_time, 4)
 
     def send(self, data, address: tuple):
-        if not (data is bytes):
+        if not (isinstance(data, bytes)):
             data = str(data)
             data = data.encode()
         self.socket.sendto(data, address)
