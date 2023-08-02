@@ -35,7 +35,7 @@ class BuffError(Exception):
 
 class Buffer(BytesIO):
     def feos(self):
-        if len(bytes(self.getvalue()).decode()[self.tell()]) == 0:
+        if len(self.getvalue()[self.tell():]) == 0:
             return True
         else:
             return False
@@ -63,13 +63,17 @@ class Buffer(BytesIO):
         self.write(struct.pack('<B', data))
 
     def read_short(self):
-        return struct.unpack('>h', self.read(2))[0]
+        shrt = self.read(2)
+        print(shrt)
+        return struct.unpack('>h', shrt)[0]
 
     def write_short(self, data):
         self.write(struct.pack('>h', data))
 
     def read_unsigned_short(self):
-        return struct.unpack('>H', self.read(2))[0]
+        ushrt = self.read(2)
+        print(ushrt)
+        return struct.unpack('>H', ushrt)[0]
 
     def write_unsigned_short(self, data):
         self.write(struct.pack('>H', data))
@@ -95,7 +99,9 @@ class Buffer(BytesIO):
         self.write(struct.pack('>Q', data))
 
     def read_int(self):
-        return struct.unpack(">i", self.read(4))[0]
+        dat = self.read(4)
+        print(dat)
+        return struct.unpack(">i", dat)[0]
 
     def write_int(self, data):
         self.write(struct.pack('>i', data))
@@ -113,7 +119,8 @@ class Buffer(BytesIO):
         self.write(struct.pack('?', data))
 
     def read_uint24le(self):
-        return struct.unpack("<I", self.read(3) + b'\x00')[0]
+        uint24le = self.read(3) + b'\x00'
+        return struct.unpack("<I", uint24le)[0]
 
     def write_uint24le(self, data):
         self.write(struct.pack("<I", data)[:3])
@@ -146,7 +153,7 @@ class Buffer(BytesIO):
         hostname_parts: list = address[0].split('.')
         for part in hostname_parts:
             self.write_byte(~int(part) & 0xff)
-        self.write_short(address[1])
+        self.write_unsigned_short(address[1])
 
     def read_var_int(self):
         value: int = 0

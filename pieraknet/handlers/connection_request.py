@@ -5,7 +5,8 @@ from pieraknet.packets.connection_request_accepted import ConnectionRequestAccep
 
 class ConnectionRequestHandler:
     @staticmethod
-    def handle(packet: ConnectionRequest, server, connection):
+    def handle(packet: bytes, server, connection):
+        packet = ConnectionRequest(packet)
         packet.decode()
         new_packet = ConnectionRequestAccepted()
         new_packet.client_address = connection.address
