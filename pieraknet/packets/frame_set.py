@@ -16,6 +16,7 @@ class Frame(Buffer):
     body: bytes = None
 
     def decode(self):
+        print(self.getvalue()) # Temp
         flags: int = self.read_byte()
         self.reliability = (flags & 0xf4) >> 5
         self.fragmented = (flags & 0x10) > 0

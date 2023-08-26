@@ -72,7 +72,6 @@ class Buffer(BytesIO):
 
     def read_unsigned_short(self):
         ushrt = self.read(2)
-        print(ushrt)
         return struct.unpack('>H', ushrt)[0]
 
     def write_unsigned_short(self, data):
