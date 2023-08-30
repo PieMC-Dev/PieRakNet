@@ -57,7 +57,7 @@ For detailed information on how to use PieRakNet, refer to the [documentation](l
 
 ![Repo Size](https://img.shields.io/github/repo-size/PieMC-Dev/PieRakNet)
 ![Contributors](https://img.shields.io/github/contributors/PieMC-Dev/PieRakNet)
-![Stars](https://img.shields.io/github/stars/lapismyt/PieRakNet?style=social)
+![Stars](https://img.shields.io/github/stars/PieMC-Dev/PieRakNet?style=social)
 
 ## Project Evolution
 
