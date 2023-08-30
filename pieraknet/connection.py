@@ -7,7 +7,7 @@ from pieraknet.handlers.online_ping import OnlinePingHandler
 from pieraknet.packets.online_ping import OnlinePing
 from pieraknet.packets.new_incoming_connection import NewIncomingConnection
 from pieraknet.packets.disconnect import Disconnect
-
+from pieraknet.buffer import Buffer
 
 class Connection:
     def __init__(self, address, server, mtu_size, guid):
@@ -43,14 +43,18 @@ class Connection:
 
     def handle(self, data):
         self.last_receive_time = time.time()
+        print("New Packet: %s", data)  # Log the received packet data
         if data[0] == ProtocolInfo.ACK:
             self.handle_ack(data)
         elif data[0] == ProtocolInfo.NACK:
             self.handle_nack(data)
         elif ProtocolInfo.FRAME_SET_0 <= data[0] <= ProtocolInfo.FRAME_SET_F:
-            self.handle_frame_set(data)
+            self.handle_frame_set(data)  # Pass the raw binary data to the method
+            print("Frame Set handled.")  # Log that the frame set was handled
+
 
     def handle_ack(self, data: bytes):
+        print("Handling ACK packet...")
         packet = Ack(data)
         packet.decode()
         for sequence_number in packet.sequence_numbers:
@@ -58,6 +62,7 @@ class Connection:
                 del self.recovery_queue[sequence_number]
 
     def handle_nack(self, data: bytes):
+        print("Handling NACK packet...")
         packet = Nack(data)
         packet.decode()
         for sequence_number in packet.sequence_numbers:
@@ -69,21 +74,23 @@ class Connection:
                 self.send_data(lost_packet.data)
                 del self.recovery_queue[sequence_number]
 
-    def handle_frame_set(self, data: bytes):
-        packet = FrameSet(data)
-        packet.decode()
-        if packet.sequence_number not in self.client_sequence_numbers:
-            if packet.sequence_number in self.nack_queue:
-                self.nack_queue.remove(packet.sequence_number)
-            self.client_sequence_numbers.append(packet.sequence_number)
-            self.ack_queue.append(packet.sequence_number)
-            hole_size = packet.sequence_number - self.client_sequence_number
+    def handle_frame_set(self, data):
+        print("Handling Frame Set...")
+        buf = Buffer(data)  # Create a Buffer instance from the received data
+        frame_set = FrameSet()
+        frame_set.decode(data)  # Pass the Buffer instance to the decode method
+        if frame_set.sequence_number not in self.client_sequence_numbers:
+            if frame_set.sequence_number in self.nack_queue:
+                self.nack_queue.remove(frame_set.sequence_number)
+            self.client_sequence_numbers.append(frame_set.sequence_number)
+            self.ack_queue.append(frame_set.sequence_number)
+            hole_size = frame_set.sequence_number - self.client_sequence_number
             if hole_size > 0:
                 for sequence_number in range(self.client_sequence_number + 1, hole_size):
                     if sequence_number not in self.client_sequence_numbers:
                         self.nack_queue.append(sequence_number)
-            self.client_sequence_number: int = packet.sequence_number
-            for frame in packet.frames:
+            self.client_sequence_number = frame_set.sequence_number
+            for frame in frame_set.frames:
                 if not (2 <= frame.reliability <= 7 and frame.reliability != 5):
                     self.handle_frame(frame)
                 else:
@@ -92,7 +99,9 @@ class Connection:
                         self.handle_frame(frame)
                         self.client_reliable_frame_index += 1
 
+
     def handle_fragmented_frame(self, packet):
+        print("Handling Fragmented Frame...")
         if packet.compound_id not in self.fragmented_packets:
             self.fragmented_packets[packet.compound_id] = {packet.index: packet}
         else:
@@ -106,6 +115,7 @@ class Connection:
             self.handle_frame(new_frame)
 
     def handle_frame(self, packet):
+        print("Handling Frame...")
         if packet.fragmented:
             self.handle_fragmented_frame(packet)
         else:
@@ -140,6 +150,7 @@ class Connection:
                         self.server.interface.on_unknown_packet(packet, self)
 
     def send_queue(self):
+        print("Sending Queue...")
         if len(self.queue.frames) > 0:
             self.queue.sequence_number = self.server_sequence_number
             self.server_sequence_number += 1
@@ -211,6 +222,7 @@ class Connection:
             self.send_data(packet.getvalue())
 
     def disconnect(self):
+        print("Disconnecting...")
         new_frame = Frame()
         new_frame.reliability = 0
         disconnect_packet = Disconnect()

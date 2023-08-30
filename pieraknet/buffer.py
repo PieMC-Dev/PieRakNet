@@ -19,7 +19,7 @@
 
 import struct
 from io import BytesIO
-
+from bitstring import BitArray
 
 class UnsupportedIPVersion(Exception):
     pass
@@ -53,7 +53,20 @@ class Buffer(BytesIO):
         if not isinstance(data, bytes):
             data = str(data).encode()
         self.write(struct.pack('B', int(data)))
-
+        
+    def read_bits(self, num_bits):
+        bytes_needed = (num_bits + 7) // 8
+        data = self.read(bytes_needed)
+        bit_array = BitArray(bytes=data)
+        return bit_array[:num_bits]
+    
+    def write_bits(self, bit_array):
+        if not isinstance(bit_array, BitArray):
+            raise ValueError("Input must be a BitArray")
+        
+        byte_data = bit_array.tobytes()
+        self.write(byte_data)
+        
     def read_ubyte(self):
         return struct.unpack('<B', self.read(1))[0]
 

@@ -1,89 +1,95 @@
-from pieraknet.packets.packet import Packet
 from pieraknet.buffer import Buffer
-from io import SEEK_CUR
+from bitstring import BitArray
 
-
-class Frame(Buffer):
-    reliability: int = None
-    fragmented: bool = None
-    reliable_frame_index: int = None
-    sequenced_frame_index: int = None
-    ordered_frame_index: int = None
-    order_channel: int = None
-    compound_size: int = None
-    compound_id: int = None
-    index: int = None
-    body: bytes = None
-
-    def decode(self):
-        print(self.getvalue()) # Temp
-        flags: int = self.read_byte()
-        self.reliability = (flags & 0xf4) >> 5
-        self.fragmented = (flags & 0x10) > 0
-        body_length: int = self.read_unsigned_short() >> 3
-        if 2 <= self.reliability <= 7 and self.reliability != 5:
-            self.reliable_frame_index = self.read_uint24le()
-        if self.reliability == 1 or self.reliability == 4:
-            self.sequenced_frame_index = self.read_uint24le()
-        if self.reliability == 3 or self.reliability == 7:
-            self.ordered_frame_index = self.read_uint24le()
-            self.order_channel = self.read_byte()
-        if self.fragmented:
-            self.compound_size = self.read_int()
-            self.compound_id = self.read_short()
-            self.index = self.read_int()
-        self.body = self.read(body_length)
+class FrameSet:
+    def __init__(self):
+        self.sequence_number = 0
+        self.frames = []
 
     def encode(self):
-        self.write_byte((self.reliability << 5) | (0x10 if self.fragmented else 0))
-        self.write_unsigned_short(len(self.body) << 3)
-        if 2 <= self.reliability <= 7 and self.reliability != 5:
-            self.write_uint24le(self.reliable_frame_index)
-        if self.reliability == 1 or self.reliability == 4:
-            self.write_uint24le(self.sequenced_frame_index)
-        if self.reliability == 3 or self.reliability == 7:
-            self.write_uint24le(self.ordered_frame_index)
-            self.write_byte(self.order_channel)
-        if self.fragmented:
-            self.write_int(self.compound_size)
-            self.write_short(self.compound_id)
-            self.write_int(self.index)
-        self.write_uint24le(self.body)
+        buf = Buffer()
+        buf.write_uint24le(self.sequence_number)
+
+        for frame in self.frames:
+            buf.write(frame.encode())
+
+        return buf.getvalue()
 
     def get_size(self):
-        length: int = 3
-        if 2 <= self.reliability <= 7 and self.reliability != 5:
-            length += 3
-        if self.reliability == 1 or self.reliability == 4:
-            length += 3
-        if self.reliability == 3 or self.reliability == 7:
-            length += 4
-        if self.fragmented:
-            length += 10
-        return length
+        return 3 + sum(frame.get_size() for frame in self.frames)
 
+    def getvalue(self):
+        return self.encode()
 
-class FrameSet(Packet):
-    packet_id = 0x80
-    sequence_number: int = None
-    frames: list[Frame] = []
+    def decode(self, data):
+        buf = Buffer(data)
+        self.sequence_number = buf.read_uint24le()
 
-    def decode_payload(self):
-        self.sequence_number = self.read_uint24le()
-        while not self.feos():
-            frame: Frame = Frame(bytes(self.getbuffer())[self.tell():])
-            frame.decode()
+        while not buf.feos():
+            frame = Frame()
+            frame.decode(buf)
             self.frames.append(frame)
-            self.seek(frame.get_size(), SEEK_CUR)
 
-    def encode_payload(self):
-        self.write_uint24le(self.sequence_number)
-        for frame in self.frames:
-            frame.encode()
-            self.write(bytes(frame.getvalue()))
+class Frame:
+    def __init__(self):
+        self.flags = 0
+        self.body_length = 0
+        self.reliable_frame_index = 0
+        self.sequenced_frame_index = 0
+        self.ordered_frame_index = 0
+        self.order_channel = 0
+        self.compound_size = 0
+        self.compound_id = 0
+        self.index = 0
+        self.body = b''
+
+    def decode(self, buf):
+        self.flags = buf.read_byte()
+        self.reliability = self.flags >> 5
+        self.fragmented = (self.flags & 0x10) != 0
+        self.length_bits = buf.read_unsigned_short()
+
+        if self.reliability == 0:
+            self.reliable_frame_index = buf.read_uint24le()
+        elif self.reliability == 1:  # Add handling for other reliability types
+            self.sequenced_frame_index = buf.read_uint24le()
+        elif self.reliability == 2:
+            self.ordered_frame_index = buf.read_uint24le()
+            self.order_channel = buf.read_byte()
+
+        if self.fragmented:
+            self.compound_size = buf.read_int()
+            self.compound_id = buf.read_short()
+            self.index = buf.read_int()
+
+        self.body = buf.read_bits(self.length_bits)
+        
+    def encode(self):
+        buf = Buffer()
+        flags = (self.reliability << 5) | (0x10 if self.fragmented else 0)  # Flags: reliability + fragmentation
+        body_bits = BitArray(bytes=self.body)
+        
+        buf.write_byte(flags)
+        buf.write_unsigned_short(len(body_bits))  # Set body length in bits
+
+        if self.reliability in [1, 2, 3]:
+            buf.write_uint24le(self.reliable_frame_index)
+        if self.reliability == 1:
+            buf.write_uint24le(self.sequenced_frame_index)
+        if self.reliability == 2:
+            buf.write_uint24le(self.ordered_frame_index)
+            buf.write_byte(self.order_channel)
+        if self.fragmented:
+            buf.write_int(self.compound_size)
+            buf.write_short(self.compound_id)
+            buf.write_int(self.index)
+
+        buf.write_bits(body_bits)
+        
+        return buf.getvalue()
 
     def get_size(self):
-        length: int = 4
-        for frame in self.frames:
-            length += frame.get_size()
-        return length
+        return len(self.encode())
+
+    def getvalue(self):
+        return self.encode()

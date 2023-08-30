@@ -1,5 +1,6 @@
 # PieRakNet
 test.py
+*.swp
 
 # Prerequisites
 *.d
