@@ -43,7 +43,7 @@ class Connection:
 
     def handle(self, data):
         self.last_receive_time = time.time()
-        print("New Packet: %s", data)  # Log the received packet data
+        print("New Packet: ", data)  # Log the received packet data
         if data[0] == ProtocolInfo.ACK:
             self.handle_ack(data)
         elif data[0] == ProtocolInfo.NACK:

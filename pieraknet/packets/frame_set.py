@@ -1,5 +1,4 @@
 from pieraknet.buffer import Buffer
-from bitstring import BitArray
 
 class FrameSet:
     def __init__(self):
@@ -33,7 +32,9 @@ class FrameSet:
 class Frame:
     def __init__(self):
         self.flags = 0
-        self.body_length = 0
+        self.reliability = 0
+        self.fragmented = False
+        self.length_bits = 0
         self.reliable_frame_index = 0
         self.sequenced_frame_index = 0
         self.ordered_frame_index = 0
@@ -62,13 +63,14 @@ class Frame:
             self.compound_id = buf.read_short()
             self.index = buf.read_int()
 
-        self.body = buf.read_bits(self.length_bits)
+        num_bytes = (self.length_bits + 7) // 8
+        self.body = buf.read_bits(self.length_bits)[:num_bytes]
         
     def encode(self):
         buf = Buffer()
         flags = (self.reliability << 5) | (0x10 if self.fragmented else 0)  # Flags: reliability + fragmentation
-        body_bits = BitArray(bytes=self.body)
-        
+        body_bits = self.body + [0] * (8 - len(self.body) % 8)  # Pad bits to byte boundary
+
         buf.write_byte(flags)
         buf.write_unsigned_short(len(body_bits))  # Set body length in bits
 
@@ -84,7 +86,15 @@ class Frame:
             buf.write_short(self.compound_id)
             buf.write_int(self.index)
 
-        buf.write_bits(body_bits)
+        num_bytes = (len(body_bits) + 7) // 8
+        byte_data = bytearray()
+        for i in range(0, len(body_bits), 8):
+            byte = 0
+            for j in range(8):
+                if i + j < len(body_bits):
+                    byte |= body_bits[i + j] << (7 - j)
+            byte_data.append(byte)
+        buf.write(byte_data)
         
         return buf.getvalue()
 
