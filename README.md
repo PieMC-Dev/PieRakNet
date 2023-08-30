@@ -1,5 +1,16 @@
 # PieRakNet 🍰🔗
 
+<p align="center">
+  <img src="https://piemc-dev.github.io/assets/img/PieMC.webp" alt="Image" width="200" height="200" />
+</p>
+
+
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](https://github.com/PieMC-Dev/PieRakNet/blob/pieraknet/LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/PieMC-Dev/PieRakNet?color=blue)](https://github.com/PieMC-Dev/PieRakNet/commits/pieraknet)
+[![Languages](https://img.shields.io/github/languages/count/PieMC-Dev/PieRakNet?color=blue)](https://github.com/PieMC-Dev/PieRakNet)
+[![Discord](https://img.shields.io/discord/1120767457364279338?color=blue)](https://discord.gg/Bf3cXRUUnm)
+[![Stars](https://img.shields.io/github/stars/PieMC-Dev/PieRakNet?style=social&color=blue)](https://github.com/PieMC-Dev/PieRakNet/stargazers)
+
 PieRakNet is a RakNet implementation written in Python, primarily developed for the PieMC project. 🚀
 
 ## Table of Contents
@@ -42,6 +53,31 @@ To use PieRakNet in your project, follow these general steps:
 
 For detailed information on how to use PieRakNet, refer to the [documentation](link-to-documentation).
 
+## Project Stats
+
+![Repo Size](https://img.shields.io/github/repo-size/PieMC-Dev/PieRakNet)
+![Contributors](https://img.shields.io/github/contributors/PieMC-Dev/PieRakNet)
+![Stars](https://img.shields.io/github/stars/lapismyt/PieRakNet?style=social)
+
+## Project Evolution
+
+📈 **Stars Evolution:**
+
+![Stars Evolution](https://starchart.cc/PieMC-Dev/PieRakNet.svg)
+
+## Development Team
+
+- Lead Developer: [@LapisMYT](https://github.com/lapismyt)
+- Collaborators:
+  - [@andiricum2](https://github.com/andiricum2)
+  - [@skyss0fly](https://github.com/skyss0fly)
+  - [@Inaay](https://github.com/Inaay)
+
+- Contributors:
+<a href="https://github.com/PieMC-Dev/PieRakNet/graphs/contributors">
+<img src="https://contrib.rocks/image?repo=PieMC-Dev/PieRakNet" />
+</a>
+
 ## Contributing 🤝
 
 Contributions to PieRakNet are welcome and encouraged! If you'd like to contribute:
@@ -56,4 +92,5 @@ Please read the [Contribution Guidelines](CONTRIBUTING.md) for more information.
 
 ## License 📝
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [GPL-3.0 License](LICENSE).
+NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG.
