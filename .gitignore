@@ -1,6 +1,11 @@
 # PieRakNet
 test.py
 *.swp
+*.swo
+
+# Python
+*.py[cod]
+__pycache__
 
 # Prerequisites
 *.d
