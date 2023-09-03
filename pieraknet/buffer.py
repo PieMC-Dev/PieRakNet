@@ -144,13 +144,13 @@ class Buffer(BytesIO):
 
     def read_string(self):
         length = self.read_short()
-        string = self.read(length).decode('utf-8')
+        string = self.read(length).decode('ascii')
         return string
 
     def write_string(self, data):
         self.write_short(len(data))
         if not isinstance(data, bytes):
-            data = data.encode('utf-8')
+            data = data.encode('ascii')
         self.write(data)
 
     def read_address(self):
