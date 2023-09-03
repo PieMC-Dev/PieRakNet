@@ -8,7 +8,7 @@ def readme():
 
 setup(
     name='PieRakNet',
-    version='1.0.5',
+    version='1.0.6',
     author='lapismyt',
     author_email='PieMC.Developers@gmail.com',
     description='RakNet implementation, written in Python. Created for PieMC.',
