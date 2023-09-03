@@ -82,7 +82,6 @@ class Buffer(BytesIO):
 
     def read_short(self):
         shrt = self.read(2)
-        print(shrt)
         return struct.unpack('>h', shrt)[0]
 
     def write_short(self, data):
@@ -117,7 +116,6 @@ class Buffer(BytesIO):
 
     def read_int(self):
         dat = self.read(4)
-        print(dat)
         return struct.unpack(">i", dat)[0]
 
     def write_int(self, data):
