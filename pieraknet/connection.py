@@ -1,5 +1,4 @@
 import time
-import logging
 from pieraknet.packets.frame_set import FrameSet, Frame
 from pieraknet.protocol_info import ProtocolInfo
 from pieraknet.packets.acknowledgement import Ack, Nack
@@ -11,8 +10,7 @@ from pieraknet.packets.disconnect import Disconnect
 from pieraknet.buffer import Buffer
 
 class Connection:
-    def __init__(self, address, server, mtu_size, guid, logger=logging.getLogger(__name__)):
-        self.logger = logger
+    def __init__(self, address, server, mtu_size, guid):
         self.address = address
         self.mtu_size = mtu_size
         self.server = server
@@ -45,18 +43,18 @@ class Connection:
 
     def handle(self, data):
         self.last_receive_time = time.time()
-        self.logger.debug("New Packet: ", data)  # Log the received packet data
+        self.server.logger.debug(f"New Packet: {data}")  # Log the received packet data
         if data[0] == ProtocolInfo.ACK:
             self.handle_ack(data)
         elif data[0] == ProtocolInfo.NACK:
             self.handle_nack(data)
         elif ProtocolInfo.FRAME_SET_0 <= data[0] <= ProtocolInfo.FRAME_SET_F:
             self.handle_frame_set(data)  # Pass the raw binary data to the method
-            self.logger.debug("Frame Set handled.")  # Log that the frame set was handled
+            self.server.logger.debug("Frame Set handled.")  # Log that the frame set was handled
 
 
     def handle_ack(self, data: bytes):
-        self.logger.debug("Handling ACK packet...")
+        self.server.logger.debug("Handling ACK packet...")
         packet = Ack(data)
         packet.decode()
         for sequence_number in packet.sequence_numbers:
@@ -64,7 +62,7 @@ class Connection:
                 del self.recovery_queue[sequence_number]
 
     def handle_nack(self, data: bytes):
-        self.logger.debug("Handling NACK packet...")
+        self.server.logger.debug("Handling NACK packet...")
         packet = Nack(data)
         packet.decode()
         for sequence_number in packet.sequence_numbers:
@@ -77,7 +75,7 @@ class Connection:
                 del self.recovery_queue[sequence_number]
 
     def handle_frame_set(self, data):
-        self.logger.debug("Handling Frame Set...")
+        self.server.logger.debug("Handling Frame Set...")
         buf = Buffer(data)  # Create a Buffer instance from the received data
         frame_set = FrameSet()
         frame_set.decode(data)  # Pass the Buffer instance to the decode method
@@ -103,7 +101,7 @@ class Connection:
 
 
     def handle_fragmented_frame(self, packet):
-        self.logger.debug("Handling Fragmented Frame...")
+        self.server.logger.debug("Handling Fragmented Frame...")
         if packet.compound_id not in self.fragmented_packets:
             self.fragmented_packets[packet.compound_id] = {packet.index: packet}
         else:
@@ -117,7 +115,7 @@ class Connection:
             self.handle_frame(new_frame)
 
     def handle_frame(self, packet):
-        self.logger.debug("Handling Frame...")
+        self.server.logger.debug("Handling Frame...")
         if packet.fragmented:
             self.handle_fragmented_frame(packet)
         else:
@@ -152,7 +150,7 @@ class Connection:
                         self.server.interface.on_unknown_packet(packet, self)
 
     def send_queue(self):
-        self.logger.debug("Sending Queue...")
+        self.server.logger.debug("Sending Queue...")
         if len(self.queue.frames) > 0:
             self.queue.sequence_number = self.server_sequence_number
             self.server_sequence_number += 1
@@ -224,7 +222,7 @@ class Connection:
             self.send_data(packet.getvalue())
 
     def disconnect(self):
-        self.logger.debug("Disconnecting...")
+        self.server.logger.debug("Disconnecting...")
         new_frame = Frame()
         new_frame.reliability = 0
         disconnect_packet = Disconnect()
