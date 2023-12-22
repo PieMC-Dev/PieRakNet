@@ -17,7 +17,7 @@ class ConnectionNotFound(Exception):
 
 
 class Server:
-    def __init__(self, hostname='0.0.0.0', port=19132, logger=logging.getLogger(__name__)):
+    def __init__(self, hostname='0.0.0.0', port=19132, logger=logging.getLogger("PieRakNet")):
         self.logger = logger
         self.start_time = round(time.time(), 2)
         self.hostname = hostname
