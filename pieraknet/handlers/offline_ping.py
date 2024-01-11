@@ -1,6 +1,6 @@
 from pieraknet.packets.offline_ping import OfflinePing
 from pieraknet.packets.offline_pong import OfflinePong
-
+import time
 
 class OfflinePingHandler:
     @staticmethod
@@ -14,7 +14,7 @@ class OfflinePingHandler:
         server.logger.debug(f"- MAGIC: {str(packet.magic)}")
         server.logger.debug(f"- Client GUID: {str(packet.client_guid)}")
         new_packet = OfflinePong()
-        new_packet.client_timestamp = packet.client_timestamp
+        new_packet.client_timestamp = packet.client_timestamp + 1
         new_packet.server_guid = server.guid
         new_packet.magic = packet.magic  # TODO: server.magic
         new_packet.server_name = server.name
