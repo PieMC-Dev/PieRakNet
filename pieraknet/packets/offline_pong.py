@@ -20,7 +20,5 @@ class OfflinePong(Packet):
 
 
         self.write_magic(self.magic)
-        if not isinstance(self.server_name, bytes):
-            self.server_name: bytes = self.server_name.encode('utf-8')
         self.write_string(self.server_name)
 
