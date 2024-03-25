@@ -11,7 +11,11 @@ class OpenConnectionReply1(Packet):
     mtu_size: int = None
 
     def encode_payload(self):
-        self.write_magic(self.magic)  # TODO: server.magic
+        if not isinstance(self.magic, bytes):
+            self.magic = str(self.magic)
+            self.magic = self.magic.encode()
+    
+        self.write_magic(self.magic)
         self.write_long(self.server_guid)
         self.write_bool(self.use_security)
         self.write_short(self.mtu_size)

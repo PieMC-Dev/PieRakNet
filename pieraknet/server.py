@@ -17,12 +17,12 @@ class ConnectionNotFound(Exception):
 
 
 class Server:
-    def __init__(self, hostname='0.0.0.0', port=19132, logger=logging.getLogger("PieRakNet")):
+    def __init__(self, hostname='0.0.0.0', port=19132, ipv=4, logger=logging.getLogger("PieRakNet")):
         self.logger = logger
         self.start_time = round(time.time(), 2)
         self.hostname = hostname
         self.port = port
-        self.ipv = 4
+        self.ipv = ipv
         self.name = ''
         self.protocol_version = 11
         self.guid = random.randint(0, sys.maxsize - 1)

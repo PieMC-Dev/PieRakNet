@@ -6,7 +6,7 @@ class OpenConnectionRequest2(Packet):
     packet_type = 'open_connection_request_2'
 
     magic: bytes = None
-    server_address: tuple = None  # ('255.255.255.255', 19132
+    server_address: tuple = None  # ('255.255.255.255', 19132)
     mtu_size: int = None
     client_guid: int = None
 

@@ -12,7 +12,11 @@ class OpenConnectionReply2(Packet):
     encryption_enabled: bool = None
 
     def encode_payload(self):
-        self.write_magic(self.magic)  # TODO: server.magic
+        if not isinstance(self.magic, bytes):
+            self.magic = str(self.magic)
+            self.magic = self.magic.encode()
+    
+        self.write_magic(self.magic)
         self.write_long(self.server_guid)
         self.write_address(self.client_address)
         self.write_short(self.mtu_size)
