@@ -8,7 +8,7 @@ class OfflinePong(Packet):
     client_timestamp: int = None
     server_guid: int = None
     magic: bytes = None
-    server_name: str = None
+    server_responseData: str = None
 
     def encode_payload(self):
         self.write_long(self.client_timestamp)
@@ -20,5 +20,5 @@ class OfflinePong(Packet):
 
 
         self.write_magic(self.magic)
-        self.write_string(self.server_name)
+        self.write_string(self.server_responseData)
 
