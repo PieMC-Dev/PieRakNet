@@ -1,7 +1,6 @@
 import logging
 import random
 import socket
-import struct
 import sys
 import time
 
