@@ -1,14 +1,15 @@
 from pieraknet.packets.packet import Packet
 
-
 class OpenConnectionRequest2(Packet):
-    packet_id = 0x07
-    packet_type = 'open_connection_request_2'
+    PACKET_ID = 0x07
+    PACKET_TYPE = 'open_connection_request_2'
 
-    magic: bytes = None
-    server_address: tuple = None  # ('255.255.255.255', 19132)
-    mtu_size: int = None
-    client_guid: int = None
+    def __init__(self, data: bytes = b''):
+        super().__init__(data)
+        self.magic: bytes = None
+        self.server_address: tuple = None
+        self.mtu_size: int = None
+        self.client_guid: int = None
 
     def decode_payload(self):
         self.magic = self.read_magic()

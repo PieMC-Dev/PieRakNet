@@ -12,10 +12,8 @@ from pieraknet.packets.open_connection_request_1 import OpenConnectionRequest1
 from pieraknet.packets.open_connection_request_2 import OpenConnectionRequest2
 from pieraknet.protocol_info import ProtocolInfo
 
-
 class ConnectionNotFound(Exception):
     pass
-
 
 class Server:
     def __init__(self, hostname='0.0.0.0', port=19132, ipv=4, responseData="MCPE;PieRakNet Server;589;1.20.0;2;20;13253860892328930865;Powered by PieMC;Survival;1;19132;19133;", logger=None, logginglevel="DEBUG"):
@@ -40,7 +38,7 @@ class Server:
         self.magic = b'\x00\xff\xff\x00\xfe\xfe\xfe\xfe\xfd\xfd\xfd\xfd\x12\x34\x56\x78'
         self.running = False
         self.timeout = 15
-        logger.info('Server initialized.')
+        self.logger.info('Server initialized.')
 
     def send(self, data, address: tuple):
         if not isinstance(data, bytes):

@@ -1,31 +1,34 @@
 from pieraknet.packets.packet import Packet
 import zlib
 
-
 class GamePacket(Packet):
-    packet_id = 0xfe
-    packet_type = 'game_packet'
+    PACKET_ID = 0xFE
+    PACKET_TYPE = 'game_packet'
 
-    body: bytes = None
+    def __init__(self, data: bytes = b''):
+        super().__init__(data)
+        self.body: bytes = None
 
     def decode_payload(self, decompress=True):
         self.body = self.read()
         if decompress:
-            self.body = self.decompress(self.body)
+            self.body = self._decompress(self.body)
 
     def encode_payload(self, compress=True):
         if compress:
-            self.write(self.compress(self.body))
+            self.write(self._compress(self.body))
         else:
             self.write(self.body)
 
     @staticmethod
-    def decompress(data):
-        return zlib.decompress(data, -zlib.MAX_WBITS, 1024 * 1024 * 8)
+    def _decompress(data):
+        try:
+            return zlib.decompress(data, -zlib.MAX_WBITS, 1024 * 1024 * 8)
+        except zlib.error:
+            print("Error during decompression")
+            return b''
 
     @staticmethod
-    def compress(data):
-        compress = zlib.compressobj(1, zlib.DEFLATED, -zlib.MAX_WBITS)
-        compressed_data = compress.compress(data)
-        compressed_data += compress.flush()
-        return compressed_data
+    def _compress(data):
+        return zlib.compress(data, zlib.Z_BEST_COMPRESSION)
+

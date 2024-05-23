@@ -1,11 +1,12 @@
 from pieraknet.packets.packet import Packet
 
-
 class OnlinePing(Packet):
-    packet_id = 0x00
-    packet_type = 'online_ping'
+    PACKET_ID = 0x00
+    PACKET_TYPE = 'online_ping'
 
-    client_timestamp: int = None
+    def __init__(self, data: bytes = b''):
+        super().__init__(data)
+        self.client_timestamp: int = None
 
     def decode_payload(self):
         self.client_timestamp = self.read_long()

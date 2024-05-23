@@ -23,35 +23,27 @@ from io import BytesIO
 class UnsupportedIPVersion(Exception):
     pass
 
-
 class EOSError(Exception):
     pass
-
 
 class BuffError(Exception):
     pass
 
-
 class Buffer(BytesIO):
     def feos(self):
-        if len(self.getvalue()[self.tell():]) == 0:
-            return True
-        else:
-            return False
+        return len(self.getvalue()[self.tell():]) == 0
 
     def read_packet_id(self):  # Read Packet ID
         return self.read_byte()
 
     def write_packet_id(self, data):
-        self.write_byte(str(data))
+        self.write_byte(data)
 
     def read_byte(self):
         return struct.unpack('B', self.read(1))[0]
 
     def write_byte(self, data):
-        if not isinstance(data, bytes):
-            data = str(data).encode()
-        self.write(struct.pack('B', int(data)))
+        self.write(struct.pack('B', data))
         
     def read_bits(self, num_bits):
         byte_data = self.read((num_bits + 7) // 8)
@@ -76,8 +68,6 @@ class Buffer(BytesIO):
         return struct.unpack('<B', self.read(1))[0]
 
     def write_ubyte(self, data):
-        if not isinstance(data, bytes):
-            data = data.encode('utf-8')
         self.write(struct.pack('<B', data))
 
     def read_short(self):
@@ -146,9 +136,9 @@ class Buffer(BytesIO):
         return string
 
     def write_string(self, data):
-        self.write_short(len(data))
         if not isinstance(data, bytes):
             data = data.encode('ascii')
+        self.write_short(len(data))
         self.write(data)
 
     def read_address(self):

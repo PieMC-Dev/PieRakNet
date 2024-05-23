@@ -1,14 +1,12 @@
 from setuptools import setup, find_packages
 
-
 def readme():
     with open('README.md', 'r', encoding='utf-8') as f:
         return f.read()
 
-
 setup(
     name='PieRakNet',
-    version='1.0.7',
+    version='1.0.7.1',
     author='lapismyt',
     author_email='PieMC.Developers@gmail.com',
     description='RakNet implementation, written in Python. Created for PieMC.',
@@ -16,7 +14,6 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/PieMC-Dev/PieRakNet',
     packages=find_packages(),
-    # install_requires=[],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',

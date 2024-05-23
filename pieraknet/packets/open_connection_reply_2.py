@@ -1,20 +1,20 @@
 from pieraknet.packets.packet import Packet
 
-
 class OpenConnectionReply2(Packet):
-    packet_id = 0x08
-    packet_type = 'open_connection_reply_2'
+    PACKET_ID = 0x08
+    PACKET_TYPE = 'open_connection_reply_2'
 
-    magic: bytes = None
-    server_guid: int = None
-    client_address: tuple = None  # ('255.255.255.255', 19132)
-    mtu_size: int = None
-    encryption_enabled: bool = None
+    def __init__(self, data: bytes = b''):
+        super().__init__(data)
+        self.magic: bytes = None
+        self.server_guid: int = None
+        self.client_address: tuple = None
+        self.mtu_size: int = None
+        self.encryption_enabled: bool = None
 
     def encode_payload(self):
         if not isinstance(self.magic, bytes):
-            self.magic = str(self.magic)
-            self.magic = self.magic.encode()
+            self.magic = str(self.magic).encode()
     
         self.write_magic(self.magic)
         self.write_long(self.server_guid)

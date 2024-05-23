@@ -1,13 +1,14 @@
 from pieraknet.packets.packet import Packet
 
-
 class OfflinePing(Packet):
-    packet_id = 0x01
-    packet_type = 'offline_ping'
+    PACKET_ID = 0x01
+    PACKET_TYPE = 'offline_ping'
 
-    client_timestamp: int = None
-    magic: bytes = None
-    client_guid: int = None
+    def __init__(self, data: bytes = b''):
+        super().__init__(data)
+        self.client_timestamp: int = None
+        self.magic: bytes = None
+        self.client_guid: int = None
 
     def decode_payload(self):
         self.client_timestamp = self.read_long()

@@ -69,10 +69,9 @@ class Frame:
     def encode(self):
         buf = Buffer()
         flags = (self.reliability << 5) | (0x10 if self.fragmented else 0)  # Flags: reliability + fragmentation
-        body_bits = self.body + [0] * (8 - len(self.body) % 8)  # Pad bits to byte boundary
 
         buf.write_byte(flags)
-        buf.write_unsigned_short(len(body_bits))  # Set body length in bits
+        buf.write_unsigned_short(len(self.body))  # Set body length in bytes
 
         if self.reliability in [1, 2, 3]:
             buf.write_uint24le(self.reliable_frame_index)
@@ -86,16 +85,8 @@ class Frame:
             buf.write_short(self.compound_id)
             buf.write_int(self.index)
 
-        num_bytes = (len(body_bits) + 7) // 8
-        byte_data = bytearray()
-        for i in range(0, len(body_bits), 8):
-            byte = 0
-            for j in range(8):
-                if i + j < len(body_bits):
-                    byte |= body_bits[i + j] << (7 - j)
-            byte_data.append(byte)
-        buf.write(byte_data)
-        
+        buf.write(self.body)
+
         return buf.getvalue()
 
     def get_size(self):

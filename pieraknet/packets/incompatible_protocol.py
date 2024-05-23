@@ -1,13 +1,14 @@
 from pieraknet.packets.packet import Packet
 
-
 class IncompatibleProtocol(Packet):
-    packet_id = 0x19
-    packet_type = 'incompatible_protocol'
+    PACKET_ID = 0x19
+    PACKET_TYPE = 'incompatible_protocol'
 
-    protocol_version: int = None
-    magic: bytes = None
-    server_guid: int = None
+    def __init__(self, data: bytes = b''):
+        super().__init__(data)
+        self.protocol_version: int = None
+        self.magic: bytes = None
+        self.server_guid: int = None
 
     def encode_payload(self):
         self.write_byte(self.protocol_version)
