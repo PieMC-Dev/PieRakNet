@@ -22,5 +22,5 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: System :: Networking"
 ]
-keywords = ["python", "python3", "raknet", "rak-net", "mcpe", "bedrock", "rak_net", "piemc", "pieraknet",, "network", "protocol", "games"]
+keywords = ["python", "python3", "raknet", "rak-net", "mcpe", "bedrock", "rak_net", "piemc", "pieraknet", "network", "protocol", "games"]
 urls = {"Homepage" = "https://github.com/PieMC-Dev/PieRakNet"}
