@@ -9,7 +9,7 @@ class OnlinePingHandler:
 
         new_packet = OnlinePong()
         new_packet.client_timestamp = packet.client_timestamp
-        new_packet.server_timestamp = int(time.time())
+        new_packet.server_timestamp = int(time.time() * 1000)
         new_packet.encode()
 
         return new_packet.getvalue()
