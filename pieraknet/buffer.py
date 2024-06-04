@@ -72,17 +72,17 @@ class Buffer(BytesIO):
 
     def read_short(self):
         shrt = self.read(2)
-        return struct.unpack('>h', shrt)[0]
+        return struct.unpack('!h', shrt)[0]
 
     def write_short(self, data):
-        self.write(struct.pack('>h', data))
+        self.write(struct.pack('!h', data))
 
     def read_unsigned_short(self):
         ushrt = self.read(2)
-        return struct.unpack('>H', ushrt)[0]
+        return struct.unpack('!H', ushrt)[0]
 
     def write_unsigned_short(self, data):
-        self.write(struct.pack('>H', data))
+        self.write(struct.pack('!H', data))
 
     def read_magic(self):
         return self.read(16)
@@ -93,29 +93,29 @@ class Buffer(BytesIO):
         self.write(data)
 
     def read_long(self):
-        return struct.unpack('>q', self.read(8))[0]
+        return struct.unpack('!q', self.read(8))[0]
 
     def write_long(self, data):
-        self.write(struct.pack('>q', data))
+        self.write(struct.pack('!q', data))
 
     def read_ulong(self):
-        return struct.unpack('>Q', self.read(8))[0]
+        return struct.unpack('!Q', self.read(8))[0]
 
     def write_ulong(self, data):
-        self.write(struct.pack('>Q', data))
+        self.write(struct.pack('!Q', data))
 
     def read_int(self):
         dat = self.read(4)
-        return struct.unpack(">i", dat)[0]
+        return struct.unpack("!i", dat)[0]
 
     def write_int(self, data):
-        self.write(struct.pack('>i', data))
+        self.write(struct.pack('!i', data))
 
     def read_uint(self):
-        return struct.unpack(">I", self.read(4))[0]
+        return struct.unpack("!I", self.read(4))[0]
 
     def write_uint(self, data):
-        self.write(struct.pack('>I', data))
+        self.write(struct.pack('!I', data))
 
     def read_bool(self):
         return struct.unpack('?', self.read(1))[0]
