@@ -1,9 +1,11 @@
 from pieraknet.buffer import Buffer
+from pieraknet.packets.acknowledgement import Ack
 
 class FrameSet:
     def __init__(self):
         self.sequence_number = 0
         self.frames = []
+        self.acks_to_send = []  
 
     def encode(self):
         buf = Buffer()
@@ -29,6 +31,20 @@ class FrameSet:
             frame.decode(buf)
             self.frames.append(frame)
 
+            if frame.reliability in [5, 6, 7]:
+                self.acks_to_send.append(self.sequence_number)
+
+    def get_acks_to_send(self):
+        self.server.logger.info(f"Acks to send:" + str(self.acks_to_send))
+        if not self.acks_to_send:
+            return None
+
+        ack_packet = Ack()
+        ack_packet.sequence_numbers = self.acks_to_send
+        ack_packet.encode_payload()
+        encoded_data = ack_packet.getvalue()
+        return encoded_data
+    
 class Frame:
     def __init__(self):
         self.flags = 0
@@ -51,12 +67,43 @@ class Frame:
         self.length_bits = buf.read_unsigned_short()
 
         if self.reliability == 0:
-            self.reliable_frame_index = buf.read_uint24le()
+            pass
         elif self.reliability == 1:  # Add handling for other reliability types
+            # Ordered
+            self.ordered_frame_index = buf.read_uint24le()
+            # Sequenced
             self.sequenced_frame_index = buf.read_uint24le()
         elif self.reliability == 2:
+            # Reliabled
+            self.reliable_frame_index = buf.read_uint24le()
+        elif self.reliability == 3:
+            # Reliabled
+            self.reliable_frame_index = buf.read_uint24le()
+            # Ordered
             self.ordered_frame_index = buf.read_uint24le()
-            self.order_channel = buf.read_byte()
+
+        elif self.reliability == 4:
+            # Reliabled
+            self.reliable_frame_index = buf.read_uint24le()
+            # Ordered
+            self.ordered_frame_index = buf.read_uint24le()
+            # Sequenced
+            self.sequenced_frame_index = buf.read_uint24le()
+        elif self.reliability == 5:
+            # ACK receipt
+            self.get_acks_to_send()
+        elif self.reliability == 6:
+            # Reliabled
+            self.reliable_frame_index = buf.read_uint24le()
+            # ACK receipt
+            self.get_acks_to_send()
+        elif self.reliability == 7:
+            # Reliabled
+            self.reliable_frame_index = buf.read_uint24le()
+            # Ordered
+            self.ordered_frame_index = buf.read_uint24le()
+            # ACK receipt
+            self.get_acks_to_send()
 
         if self.fragmented:
             self.compound_size = buf.read_int()

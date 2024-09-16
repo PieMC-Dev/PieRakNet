@@ -87,7 +87,7 @@ class Buffer(BytesIO):
     def read_magic(self):
         return self.read(16)
 
-    def write_magic(self, data=b'00ffff00fefefefefdfdfdfd12345678'):
+    def write_magic(self, data=b'00ffff00fefefefefdfdfdfd124V'):
         if not isinstance(data, bytes):
             data = data.encode('utf-8')
         self.write(data)
