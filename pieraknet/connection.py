@@ -1,6 +1,6 @@
 from time import time
 
-from pieraknet.packets.frame_set import Frame, FrameSet
+from pieraknet.packets.frame_set import Frame, FrameSetPacket  # Cambiado FrameSet a FrameSetPacket
 from pieraknet.protocol_info import ProtocolInfo
 from pieraknet.packets.acknowledgement import Ack, Nack
 from pieraknet.handlers.connection_request import ConnectionRequestHandler
@@ -25,7 +25,7 @@ class Connection:
         self.client_sequence_numbers = []
         self.client_sequence_number = 0
         self.server_sequence_number = 0
-        self.queue = FrameSet()
+        self.queue = FrameSetPacket(packet_id=0x80, sequence_number=0)  # Se inicializa con packet_id y sequence_number
         self.server_reliable_frame_index = 0
         self.client_reliable_frame_index = 0
         self.channel_index = [0] * 32
@@ -73,24 +73,24 @@ class Connection:
                 self.send_data(lost_packet.data)
                 del self.recovery_queue[sequence_number]
 
+    # TODO
     def handle_frame_set(self, data):
         self.server.logger.info("Handling Frame Set...")
-        buf = Buffer(data)
-        frame_set = FrameSet()
-        frame_set.decode(data)
-        if frame_set.sequence_number not in self.client_sequence_numbers:
-            self.client_sequence_numbers.append(frame_set.sequence_number)
-            self.ack_queue.append(frame_set.sequence_number)
-            hole_size = frame_set.sequence_number - self.client_sequence_number
+        frame_set_packet = FrameSetPacket.decode(data)
+        if frame_set_packet.sequence_number not in self.client_sequence_numbers:
+            self.client_sequence_numbers.append(frame_set_packet.sequence_number)
+            self.ack_queue.append(frame_set_packet.sequence_number)
+            hole_size = frame_set_packet.sequence_number - self.client_sequence_number
             if hole_size > 0:
                 self.nack_queue.extend(
-                    range(self.client_sequence_number + 1, hole_size))
-            self.client_sequence_number = frame_set.sequence_number
-            for frame in frame_set.frames:
-                if not (2 <= frame.reliability <= 7 and frame.reliability != 5):
+                    range(self.client_sequence_number + 1, frame_set_packet.sequence_number)
+                )
+            self.client_sequence_number = frame_set_packet.sequence_number
+            for frame in frame_set_packet.frames:
+                if not (2 <= frame.flags <= 7 and frame.flags != 5):
                     self.handle_frame(frame)
                 else:
-                    hole_size = frame.reliable_frame_index - self.client_reliable_frame_index
+                    hole_size = frame.reliable_index - self.client_reliable_frame_index
                     if hole_size == 0:
                         self.handle_frame(frame)
                         self.client_reliable_frame_index += 1
@@ -100,20 +100,20 @@ class Connection:
         fragments = self.fragmented_packets.setdefault(packet.compound_id, {})
         fragments[packet.index] = packet
         if len(fragments) == packet.compound_size:
-            new_frame = Frame()
+            new_frame = Frame(flags=0, length_bits=0)  # Ajustar según lo necesario
             new_frame.body = b''.join(fragments[i].body for i in range(packet.compound_size))
             del self.fragmented_packets[packet.compound_id]
             self.handle_frame(new_frame)
 
     def handle_frame(self, packet):
         self.server.logger.info("Handling Frame...")
-        if packet.fragmented:
+        if packet.flags & 0x01:  # Suponiendo que esto indica fragmentación
             self.handle_fragmented_frame(packet)
         else:
             packet_type = packet.body[0]
             if not self.connected:
                 if packet_type == ProtocolInfo.CONNECTION_REQUEST:
-                    new_frame = Frame(reliability=0)
+                    new_frame = Frame(flags=0, length_bits=0)  # Ajustar según lo necesario
                     new_frame.body = ConnectionRequestHandler.handle(packet.body, self.server, self)
                     self.add_to_queue(new_frame)
                 elif packet_type == ProtocolInfo.NEW_INCOMING_CONNECTION:
@@ -125,7 +125,7 @@ class Connection:
                             self.server.interface.on_new_incoming(self)
             else:
                 if packet_type == ProtocolInfo.ONLINE_PING:
-                    new_frame = Frame(reliability=0)
+                    new_frame = Frame(flags=0, length_bits=0)  # Ajustar según lo necesario
                     new_frame.body = OnlinePingHandler.handle(OnlinePing(packet.body), self, self.server)
                     self.add_to_queue(new_frame, False)
                 elif packet_type == ProtocolInfo.DISCONNECT:
@@ -144,41 +144,41 @@ class Connection:
         self.queue.sequence_number = self.server_sequence_number
         self.server_sequence_number += 1
         self.recovery_queue[self.queue.sequence_number] = self.queue
-        self.queue.encode()
-        self.send_data(self.queue.getvalue())
-        self.queue = FrameSet()
+        encoded_data = self.queue.encode()
+        self.send_data(encoded_data)
+        self.queue = FrameSetPacket(packet_id=0x80, sequence_number=self.server_sequence_number)  # Reiniciar FrameSetPacket
 
     def add_to_queue(self, packet: Frame, is_immediate=True):
-        if 2 <= packet.reliability <= 7 and packet.reliability != 5:
-            packet.reliable_frame_index = self.server_reliable_frame_index
+        if 2 <= packet.flags <= 7 and packet.flags != 5:
+            packet.reliable_index = self.server_reliable_frame_index
             self.server_reliable_frame_index += 1
-            if packet.reliability == 3:
-                packet.ordered_frame_index = self.channel_index[packet.order_channel]
+            if packet.flags & 0x10:  # Suponiendo que este flag indica orden
+                packet.ordered_index = self.channel_index[packet.order_channel]
                 self.channel_index[packet.order_channel] += 1
 
-        if packet.get_size() > self.mtu_size:
+        if packet.encode() > self.mtu_size:  # Ajustar el tamaño si es necesario
             fragmented_body = [packet.body[i:i + self.mtu_size] for i in range(0, len(packet.body), self.mtu_size)]
             for index, body in enumerate(fragmented_body):
                 new_packet = Frame(
-                    fragmented=True,
-                    reliability=packet.reliability,
+                    flags=packet.flags | 0x01,  # Suponiendo que este flag indica fragmentación
+                    length_bits=len(body) * 8,
                     compound_id=self.compound_id,
                     compound_size=len(fragmented_body),
                     index=index,
                     body=body
                 )
                 if index != 0:
-                    new_packet.reliable_frame_index = self.server_reliable_frame_index
+                    new_packet.reliable_index = self.server_reliable_frame_index
                     self.server_reliable_frame_index += 1
-                if new_packet.reliability == 3:
-                    new_packet.ordered_frame_index = packet.ordered_frame_index
+                if new_packet.flags & 0x10:  # Suponiendo que este flag indica orden
+                    new_packet.ordered_index = packet.ordered_index
                     new_packet.order_channel = packet.order_channel
                 if is_immediate:
                     self.queue.frames.append(new_packet)
                     self.send_queue()
                 else:
-                    frame_size = new_packet.get_size()
-                    queue_size = self.queue.get_size()
+                    frame_size = len(new_packet.encode())
+                    queue_size = len(self.queue.encode())
                     if frame_size + queue_size >= self.mtu_size:
                         self.send_queue()
                     self.queue.frames.append(new_packet)
@@ -188,8 +188,8 @@ class Connection:
                 self.queue.frames.append(packet)
                 self.send_queue()
             else:
-                frame_size = packet.get_size()
-                queue_size = self.queue.get_size()
+                frame_size = len(packet.encode())
+                queue_size = len(self.queue.encode())
                 if frame_size + queue_size >= self.mtu_size:
                     self.send_queue()
                 self.queue.frames.append(packet)
@@ -210,11 +210,13 @@ class Connection:
 
     def disconnect(self):
         self.server.logger.info("Disconnecting...")
-        new_frame = Frame(reliability=0)
+        new_frame = Frame(flags=0, length_bits=0)  # Ajustar según lo necesario
         disconnect_packet = Disconnect()
         disconnect_packet.encode()
         new_frame.body = disconnect_packet.getvalue()
         self.add_to_queue(new_frame)
-        self.server.remove_connection(self.address)
-        if hasattr(self.server.interface, "on_disconnect"):
+        self.send_queue()
+        self.server.connections.pop(self.address, None)
+        if hasattr(self.server, "interface") and hasattr(self.server.interface, "on_disconnect"):
             self.server.interface.on_disconnect(self)
+
