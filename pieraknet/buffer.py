@@ -253,7 +253,20 @@ class Buffer(BytesIO):
                 break
 
     def read_remaining(self):
-        return self.read(self.remaining())
+        return self.read(self.remaining())  # Lee todos los bytes restantes en el búfer
 
     def remaining(self):
         return len(self.getvalue()) - self.tell()
+
+    def read_flags(self):
+        flags_byte = self.read_byte()
+        reliability_type = (flags_byte >> 5) & 0b111  # Top 3 bits
+        is_fragmented = (flags_byte & 0b00001000) != 0  # Fourth bit
+        return reliability_type, is_fragmented
+
+    def write_flags(self, reliability_type, is_fragmented):
+        if not (0 <= reliability_type <= 7):
+            raise ValueError("Reliability type must be between 0 and 7.")
+        
+        flags_byte = (reliability_type << 5) | (0b00001000 if is_fragmented else 0)
+        self.write_byte(flags_byte)
