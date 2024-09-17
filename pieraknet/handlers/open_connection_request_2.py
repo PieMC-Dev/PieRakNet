@@ -20,6 +20,7 @@ class OpenConnectionRequest2Handler:
         new_packet.magic = packet.magic  # TODO: server.magic
         new_packet.server_guid = server.guid
         new_packet.client_address = address
+        new_packet.encryption_enabled = False
         new_packet.mtu_size = packet.mtu_size
         new_packet.encode()
 

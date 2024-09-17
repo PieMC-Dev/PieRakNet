@@ -66,6 +66,8 @@ class Frame:
         self.fragmented = (self.flags & 0x10) != 0
         self.length_bits = buf.read_unsigned_short()
 
+        print(f"Length bits: {self.length_bits}")
+
         if self.reliability == 0:
             pass
         elif self.reliability == 1:  # Add handling for other reliability types
