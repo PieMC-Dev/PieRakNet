@@ -77,11 +77,11 @@ class Frame:
         self.length_in_bits = buffer.read_unsigned_short()
         self.server.logger.debug(f"Read Length in Bits: {self.length_in_bits}")
 
-        if reliability_type in {2, 4, 6}:
+        if reliability_type in {2, 3, 4, 6, 7}:
             self.reliable_frame_index = buffer.read_uint24le()
             self.server.logger.debug(f"Read Reliable Frame Index: {self.reliable_frame_index}")
 
-        if reliability_type in {1, 3, 4, 5, 7}:
+        if reliability_type in {1, 4}:
             self.sequenced_frame_index = buffer.read_uint24le()
             self.server.logger.debug(f"Read Sequenced Frame Index: {self.sequenced_frame_index}")
 
@@ -96,9 +96,8 @@ class Frame:
             self.server.logger.debug(f"Read Compound Size: {self.compound_size}")
             self.compound_id = buffer.read_short()
             self.server.logger.debug(f"Read Compound ID: {self.compound_id}")
-
-        self.index = buffer.read_int()
-        self.server.logger.debug(f"Read Index: {self.index}")
+            self.index = buffer.read_int()
+            self.server.logger.debug(f"Read Index: {self.index}")
 
         body_length = (self.length_in_bits + 7) // 8
         self.body = buffer.read(body_length)
