@@ -17,9 +17,10 @@ class OpenConnectionRequest2Handler:
         server.logger.debug(f"- Client GUID: {packet.client_guid}")
 
         new_packet = OpenConnectionReply2()
-        new_packet.magic = packet.magic  # TODO: server.magic
+        new_packet.magic = packet.magic
         new_packet.server_guid = server.guid
         new_packet.client_address = address
+        new_packet.encryption_enabled = False
         new_packet.mtu_size = packet.mtu_size
         new_packet.encode()
 

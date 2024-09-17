@@ -46,29 +46,47 @@ class Buffer(BytesIO):
         self.write(struct.pack('B', data))
         
     def read_bits(self, num_bits):
-        byte_data = self.read((num_bits + 7) // 8)
+        # Calculate the number of bytes needed
+        num_bytes = (num_bits + 7) // 8
+        # Read the bytes from the stream
+        byte_data = self.read(num_bytes)
+        
+        if len(byte_data) < num_bytes:
+            raise ValueError("Not enough data to read the required number of bits")
+
         bits = []
+        # Extract bits from each byte
         for byte in byte_data:
             for i in range(7, -1, -1):
                 bits.append((byte >> i) & 1)
+
+        # Return only the requested number of bits
         return bits[:num_bits]
-    
+
     def write_bits(self, bit_array):
+        # Ensure the input array contains only 0s and 1s
+        if not all(bit in (0, 1) for bit in bit_array):
+            raise ValueError("bit_array must contain only 0s and 1s")
+
         num_bits = len(bit_array)
         num_bytes = (num_bits + 7) // 8
         byte_data = bytearray(num_bytes)
+        
+        # Construct the byte data
         for i, bit in enumerate(bit_array):
             byte_index = i // 8
             bit_index = 7 - (i % 8)
             if bit:
                 byte_data[byte_index] |= (1 << bit_index)
+
+        # Write the bytes to the stream
         self.write(byte_data)
-        
+
     def read_ubyte(self):
-        return struct.unpack('<B', self.read(1))[0]
+        return struct.unpack('B', self.read(1))[0]
 
     def write_ubyte(self, data):
-        self.write(struct.pack('<B', data))
+        self.write(struct.pack('B', data))
 
     def read_short(self):
         shrt = self.read(2)
@@ -90,18 +108,28 @@ class Buffer(BytesIO):
     def write_magic(self, data=b'00ffff00fefefefefdfdfdfd124V'):
         if not isinstance(data, bytes):
             data = data.encode('utf-8')
+        if len(data) != 16:
+            raise ValueError("Data must be exactly 16 bytes long.")
         self.write(data)
 
     def read_long(self):
         return struct.unpack('!q', self.read(8))[0]
 
     def write_long(self, data):
+        if not isinstance(data, int):
+            raise TypeError("Data must be an integer.")
+        if not -2**63 <= data < 2**63:
+            raise ValueError("Data must be within the range of a 64-bit signed integer.")
         self.write(struct.pack('!q', data))
 
     def read_ulong(self):
         return struct.unpack('!Q', self.read(8))[0]
 
     def write_ulong(self, data):
+        if not isinstance(data, int):
+            raise TypeError("Data must be an integer.")
+        if not 0 <= data < 2**64:
+            raise ValueError("Data must be within the range of a 64-bit unsigned integer.")
         self.write(struct.pack('!Q', data))
 
     def read_int(self):
@@ -109,18 +137,28 @@ class Buffer(BytesIO):
         return struct.unpack("!i", dat)[0]
 
     def write_int(self, data):
+        if not isinstance(data, int):
+            raise TypeError("Data must be an integer.")
+        if not -2**31 <= data < 2**31:
+            raise ValueError("Data must be within the range of a 32-bit signed integer.")
         self.write(struct.pack('!i', data))
 
     def read_uint(self):
         return struct.unpack("!I", self.read(4))[0]
 
     def write_uint(self, data):
+        if not isinstance(data, int):
+            raise TypeError("Data must be an integer.")
+        if not 0 <= data < 2**32:
+            raise ValueError("Data must be within the range of a 32-bit unsigned integer.")
         self.write(struct.pack('!I', data))
 
     def read_bool(self):
         return struct.unpack('?', self.read(1))[0]
 
     def write_bool(self, data):
+        if not isinstance(data, bool):
+            raise TypeError("Data must be a boolean value.")
         self.write(struct.pack('?', data))
 
     def read_uint24le(self):
@@ -128,16 +166,26 @@ class Buffer(BytesIO):
         return struct.unpack("<I", uint24le)[0]
 
     def write_uint24le(self, data):
+        if not isinstance(data, int):
+            raise TypeError("Data must be an integer.")
+        if not 0 <= data < 2**24:
+            raise ValueError("Data must be within the range of a 24-bit unsigned integer.")
         self.write(struct.pack("<I", data)[:3])
 
     def read_string(self):
         length = self.read_short()
+        if length < 0 or length > 65535:
+            raise ValueError("String length out of range for a 16-bit length field.")
         string = self.read(length).decode('ascii')
         return string
 
     def write_string(self, data):
-        if not isinstance(data, bytes):
+        if isinstance(data, str):
             data = data.encode('ascii')
+        elif not isinstance(data, bytes):
+            raise TypeError("Data must be a string or bytes.")
+        if len(data) > 65535:
+            raise ValueError("String data is too long for a 16-bit length field.")
         self.write_short(len(data))
         self.write(data)
 
@@ -146,7 +194,8 @@ class Buffer(BytesIO):
         if ipv == 4:
             hostname_parts = []
             for part in range(4):
-                hostname_parts.append(str(~self.read_byte() & 0xff))
+                byte_value = self.read_byte()
+                hostname_parts.append(str(~byte_value & 0xff))
             hostname = ".".join(hostname_parts)
             port = self.read_unsigned_short()
             return hostname, port
@@ -154,11 +203,29 @@ class Buffer(BytesIO):
             raise UnsupportedIPVersion('IP version is not 4')
 
     def write_address(self, address: tuple):
+        if not isinstance(address, tuple) or len(address) != 2:
+            raise TypeError("Address must be a tuple with (hostname, port).")
+        hostname, port = address
+        if not isinstance(hostname, str):
+            raise TypeError("Hostname must be a string.")
+        if not isinstance(port, int) or not (0 <= port <= 65535):
+            raise ValueError("Port must be an integer between 0 and 65535.")
+        
+        hostname_parts = hostname.split('.')
+        if len(hostname_parts) != 4:
+            raise ValueError("Invalid hostname format.")
+        
         self.write_byte(4)
-        hostname_parts: list = address[0].split('.')
         for part in hostname_parts:
-            self.write_byte(~int(part) & 0xff)
-        self.write_unsigned_short(address[1])
+            try:
+                byte_value = int(part)
+                if not (0 <= byte_value <= 255):
+                    raise ValueError("Each part of the hostname must be between 0 and 255.")
+                self.write_byte(~byte_value & 0xff)
+            except ValueError:
+                raise ValueError("Invalid part in hostname.")
+        
+        self.write_unsigned_short(port)
 
     def read_var_int(self):
         value: int = 0
@@ -170,12 +237,36 @@ class Buffer(BytesIO):
         raise BuffError("VarInt is too big")
 
     def write_var_int(self, value: int) -> None:
+        if not isinstance(value, int):
+            raise TypeError("Value must be an integer.")
+        if not (0 <= value < 2**32):
+            raise ValueError("Value must be within the range of a 32-bit unsigned integer.")
+        
         value &= 0xffffffff
-        for i in range(0, 5):
-            to_write: int = value & 0x7f
+        while True:
+            to_write = value & 0x7f
             value >>= 7
-            if value != 0:
+            if value:
                 self.write_ubyte(to_write | 0x80)
             else:
                 self.write_ubyte(to_write)
                 break
+
+    def read_remaining(self):
+        return self.read(self.remaining())  # Lee todos los bytes restantes en el búfer
+
+    def remaining(self):
+        return len(self.getvalue()) - self.tell()
+
+    def read_flags(self):
+        flags_byte = self.read_byte()
+        reliability_type = (flags_byte >> 5) & 0b111  # Top 3 bits
+        is_fragmented = (flags_byte & 0b00001000) != 0  # Fourth bit
+        return reliability_type, is_fragmented
+
+    def write_flags(self, reliability_type, is_fragmented):
+        if not (0 <= reliability_type <= 7):
+            raise ValueError("Reliability type must be between 0 and 7.")
+        
+        flags_byte = (reliability_type << 5) | (0b00001000 if is_fragmented else 0)
+        self.write_byte(flags_byte)
