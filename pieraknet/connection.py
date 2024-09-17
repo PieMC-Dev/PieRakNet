@@ -24,7 +24,8 @@ class Connection:
         self.client_sequence_numbers = []
         self.client_sequence_number = 0
         self.server_sequence_number = 0
-        self.queue = []
+        self.incoming_sequence_number = 0
+        self.queue = FrameSetPacket()
         self.server_reliable_frame_index = 0
         self.client_reliable_frame_index = 0
         self.channel_index = [0] * 32
@@ -54,7 +55,6 @@ class Connection:
             self.handle_nack(data)
         elif ProtocolInfo.FRAME_SET_0 <= packet_type <= ProtocolInfo.FRAME_SET_F:
             self.handle_frame_set(data)
-            self.server.logger.info("Frame Set handled.")
         else:
             self.server.logger.warning(f"Unhandled packet type {packet_type} from {self.address}")
 
@@ -84,37 +84,33 @@ class Connection:
 
     def handle_frame_set(self, data):
         self.server.logger.info(f"Handling Frame Set packet: {data}")
-        
+
         # Create a FrameSetPacket
         frame_set_packet = FrameSetPacket(server=self.server)
-        frame_set_packet.read(Buffer(data))
+        frame_set_packet.decode(Buffer(data))
 
         # Verificar números de secuencia
         incoming_sequence_number = frame_set_packet.sequence_number
-        
-        # Verificar números de secuencia
         self.server.logger.debug(f"Incoming sequence number: {incoming_sequence_number}")
 
-        if frame_set_packet.sequence_number not in self.client_sequence_numbers:
-            self.client_sequence_numbers.append(frame_set_packet.sequence_number)
-            self.ack_queue.append(frame_set_packet.sequence_number)
+        if incoming_sequence_number not in self.client_sequence_numbers:
+            self.client_sequence_numbers.append(incoming_sequence_number)
+            self.ack_queue.append(incoming_sequence_number)
             self.server.logger.debug(f"Updated ACK queue: {self.ack_queue}")
 
-            hole_size = frame_set_packet.sequence_number - self.client_sequence_number
+            hole_size = incoming_sequence_number - self.client_sequence_number
             if hole_size > 0:
                 self.server.logger.info(f"Detected packet loss. Hole size: {hole_size}")
-                self.nack_queue.extend(
-                    range(self.client_sequence_number + 1, frame_set_packet.sequence_number)
-                )
+                self.nack_queue.extend(range(self.client_sequence_number + 1, incoming_sequence_number))
 
-            self.client_sequence_number = frame_set_packet.sequence_number
+            self.client_sequence_number = incoming_sequence_number
 
             for frame in frame_set_packet.frames:
                 if not (2 <= frame.flags <= 7 and frame.flags != 5):
-                    self.server.logger.debug(f"Handling frame: {frame}")
+                    self.server.logger.debug(f"Handling frame")
                     self.handle_frame(frame)
                 else:
-                    self.server.logger.debug(f"Handling frame: {frame}")
+                    self.server.logger.debug(f"Handling frame: {frame.flags}")
                     hole_size = frame.reliable_frame_index - self.client_reliable_frame_index
                     if hole_size == 0:
                         self.handle_frame(frame)
@@ -139,15 +135,17 @@ class Connection:
     def handle_frame(self, packet):
         self.server.logger.info(f"Handling Frame: {packet}")
 
-        # Verifica que el paquete tenga el atributo 'flags'
+        # Verifica que el paquete tenga el atributo 'flags' y 'body'
         if not hasattr(packet, 'flags') or not hasattr(packet, 'body'):
             self.server.logger.error("Invalid packet structure")
             return
 
         # Maneja los paquetes fragmentados
         if packet.flags & 0x01:
+            self.server.logger.debug(f"Handling fragmented frame")
             self.handle_fragmented_frame(packet)
         else:
+            self.server.logger.debug(f"Handling non-fragmented frame")
             # Determina el tipo de paquete
             packet_type = packet.body[0]
             self.server.logger.debug(f"Packet type: {packet_type}")
@@ -175,6 +173,9 @@ class Connection:
                         self.server.logger.info(f"Connection established with {self.address}")
                         if hasattr(self.server, "interface") and hasattr(self.server.interface, "on_new_incoming"):
                             self.server.interface.on_new_incoming(self)
+                else:
+                    self.server.logger.info(f"Uknown packet type: {packet_type}, aborting connection.")
+
             else:
                 self.server.logger.info(f"Connection established, handling packet type: {packet_type}")
                 if packet_type == ProtocolInfo.ONLINE_PING:

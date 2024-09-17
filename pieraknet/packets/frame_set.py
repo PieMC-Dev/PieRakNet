@@ -39,7 +39,7 @@ class FrameSetPacket:
         self.sequence_number = None
         self.frames = []
 
-    def read(self, buffer: Buffer):
+    def decode(self, buffer: Buffer):
         self.packet_id = buffer.read_byte()
         self.server.logger.debug(f"Read Packet ID: {self.packet_id}")
 
@@ -48,7 +48,7 @@ class FrameSetPacket:
 
         while not buffer.feos():
             frame = Frame(self.server)
-            frame.read(buffer)
+            frame.decode(buffer)
             self.frames.append(frame)
             self.server.logger.debug(f"Read Frame: {frame}")
 
@@ -66,11 +66,9 @@ class Frame:
         self.index = None
         self.body = None
 
-    def read(self, buffer: Buffer):
+    def decode(self, buffer: Buffer):
         self.flags = buffer.read_byte()
-
         reliability_type = (self.flags >> 5) & 0x07
-
         is_fragmented = (self.flags >> 4) & 0x01
 
         self.server.logger.debug(f"Fragmented Frame: {is_fragmented}")
