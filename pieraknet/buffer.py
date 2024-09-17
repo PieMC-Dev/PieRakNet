@@ -251,3 +251,9 @@ class Buffer(BytesIO):
             else:
                 self.write_ubyte(to_write)
                 break
+
+    def read_remaining(self):
+        return self.read(self.remaining())
+
+    def remaining(self):
+        return len(self.getvalue()) - self.tell()
