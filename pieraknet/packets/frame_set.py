@@ -1,4 +1,6 @@
 from pieraknet.buffer import Buffer
+from pieraknet.packets.packet import Packet
+from pieraknet.packets.frame import Frame
 
 # Example packet: b'\x84\x00\x00\x00\x40\x00\x90\x00\x00\x00\t\xb3;\xc81\xbe\xfb\x96*\x00\x00\x00\x00\x00\x00\xdb\xf2\x00'
 # x84: Packet ID
@@ -35,8 +37,8 @@ from pieraknet.buffer import Buffer
 class FrameSetPacket:
     def __init__(self, server=None):
         self.server = server
-        self.packet_id = None
-        self.sequence_number = None
+        self.packet_id = 0  # Ensure default values are integers
+        self.sequence_number = 0
         self.frames = []
 
     def decode(self, buffer: Buffer):
@@ -52,53 +54,23 @@ class FrameSetPacket:
             self.frames.append(frame)
             self.server.logger.debug(f"Read Frame: {frame}")
 
-class Frame:
-    def __init__(self, server=None):
-        self.server = server
-        self.flags = None
-        self.length_in_bits = None
-        self.reliable_frame_index = None
-        self.sequenced_frame_index = None
-        self.ordered_frame_index = None
-        self.order_channel = None
-        self.compound_size = None
-        self.compound_id = None
-        self.index = None
-        self.body = None
-
-    def decode(self, buffer: Buffer):
-        self.flags = buffer.read_byte()
-        reliability_type = (self.flags >> 5) & 0x07
-        is_fragmented = (self.flags >> 4) & 0x01
-
-        self.server.logger.debug(f"Fragmented Frame: {is_fragmented}")
-        self.server.logger.debug(f"Read Frame Flags: {self.flags}")
-
-        self.length_in_bits = buffer.read_unsigned_short()
-        self.server.logger.debug(f"Read Length in Bits: {self.length_in_bits}")
-
-        if reliability_type in {2, 3, 4, 6, 7}:
-            self.reliable_frame_index = buffer.read_uint24le()
-            self.server.logger.debug(f"Read Reliable Frame Index: {self.reliable_frame_index}")
-
-        if reliability_type in {1, 4}:
-            self.sequenced_frame_index = buffer.read_uint24le()
-            self.server.logger.debug(f"Read Sequenced Frame Index: {self.sequenced_frame_index}")
-
-        if reliability_type in {1, 3, 4, 7}:
-            self.ordered_frame_index = buffer.read_uint24le()
-            self.server.logger.debug(f"Read Ordered Frame Index: {self.ordered_frame_index}")
-            self.order_channel = buffer.read_byte()
-            self.server.logger.debug(f"Read Order Channel: {self.order_channel}")
-
-        if is_fragmented:
-            self.compound_size = buffer.read_int()
-            self.server.logger.debug(f"Read Compound Size: {self.compound_size}")
-            self.compound_id = buffer.read_short()
-            self.server.logger.debug(f"Read Compound ID: {self.compound_id}")
-            self.index = buffer.read_int()
-            self.server.logger.debug(f"Read Index: {self.index}")
-
-        body_length = (self.length_in_bits + 7) // 8
-        self.body = buffer.read(body_length)
-        self.server.logger.debug(f"Read Body (Length {body_length} bytes): {self.body}")
+    def encode(self, buffer: Buffer):
+        # Escribir packet_id
+        buffer.write_byte(self.packet_id)
+        self.server.logger.debug(f"Written Packet ID: {self.packet_id}")
+        
+        # Escribir sequence_number
+        buffer.write_uint24le(self.sequence_number)
+        self.server.logger.debug(f"Written Sequence Number: {self.sequence_number}")
+        
+        # Codificar y añadir todos los frames
+        for frame in self.frames:
+            buffer.write(frame.encode())
+            self.server.logger.debug(f"Written Frame: {frame}")
+        
+        return buffer.getvalue()
+    
+    def add_frame(self, frame):
+        if not isinstance(frame, Frame):
+            raise TypeError("Expected a Frame instance.")
+        self.frames.append(frame)

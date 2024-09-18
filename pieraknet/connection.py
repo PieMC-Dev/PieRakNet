@@ -25,11 +25,12 @@ class Connection:
         self.client_sequence_number = 0
         self.server_sequence_number = 0
         self.incoming_sequence_number = 0
-        self.queue = FrameSetPacket()
+        self.queue = None
         self.server_reliable_frame_index = 0
         self.client_reliable_frame_index = 0
         self.channel_index = [0] * 32
         self.last_receive_time = time()
+        self.encoded_packet = None
         self.server.logger.info(f"Connection initialized: {self}")
 
     def update(self):
@@ -153,16 +154,15 @@ class Connection:
             if not self.connected:
                 self.server.logger.info(f"Connection not established, handling packet type: {packet_type}")
                 if packet_type == ProtocolInfo.CONNECTION_REQUEST:
-                    new_frame = Frame(flags=0, length_bits=0)
                     try:
-                        new_frame.body = ConnectionRequestHandler.handle(packet.body, self.server, self)
+                        new_packet = ConnectionRequestHandler.handle(packet.body, self.server, self)
                     except Exception as e:
                         self.server.logger.error(f"Error handling CONNECTION_REQUEST: {e}")
                         return
-                    self.add_to_queue(new_frame)
+                    self.add_to_queue(new_packet)
                 elif packet_type == ProtocolInfo.NEW_INCOMING_CONNECTION:
-                    packet = NewIncomingConnection(packet.body)
                     try:
+                        packet = NewIncomingConnection(packet.body)
                         packet.decode()
                     except Exception as e:
                         self.server.logger.error(f"Error decoding New Incoming Connection packet: {e}")
@@ -174,8 +174,7 @@ class Connection:
                         if hasattr(self.server, "interface") and hasattr(self.server.interface, "on_new_incoming"):
                             self.server.interface.on_new_incoming(self)
                 else:
-                    self.server.logger.info(f"Uknown packet type: {packet_type}, aborting connection.")
-
+                    self.server.logger.info(f"Unknown packet type: {packet_type}, aborting connection.")
             else:
                 self.server.logger.info(f"Connection established, handling packet type: {packet_type}")
                 if packet_type == ProtocolInfo.ONLINE_PING:
@@ -204,36 +203,49 @@ class Connection:
         self.queue.sequence_number = self.server_sequence_number
         self.server_sequence_number += 1
         self.recovery_queue[self.queue.sequence_number] = self.queue
-        encoded_data = self.queue.encode()
+        self.server.logger.debug(f"Encoding packet queue: {len(self.queue.frames)} frames")
+        
+        # Crear un buffer y pasarlo al método encode de FrameSetPacket
+        buffer = Buffer()
+        encoded_data = self.queue.encode(buffer=buffer)
+        
+        if encoded_data is None:
+            self.server.logger.error("Failed to encode packet queue")
+            return
+        
+        # Enviar los datos codificados
         self.send_data(encoded_data)
-        self.queue = FrameSetPacket()
+        
+        # Reset the queue
+        self.queue = FrameSetPacket(server=self.server)
 
     def add_to_queue(self, packet: Frame, is_immediate=True):
         self.server.logger.info(f"Adding packet to queue: {packet}, immediate: {is_immediate}")
-        if 2 <= packet.flags <= 7 and packet.flags != 5:
-            packet.reliable_index = self.server_reliable_frame_index
-            self.server_reliable_frame_index += 1
-            if packet.flags & 0x10:
-                packet.ordered_index = self.channel_index[packet.order_channel]
-                self.channel_index[packet.order_channel] += 1
 
-        if len(packet.encode()) > self.mtu_size:
+        self.encoded_packet = packet
+        
+        if len(self.encoded_packet) > self.mtu_size:
             self.server.logger.info(f"Fragmenting packet as it exceeds MTU size: {self.mtu_size}")
+
+            # Fragmentar el cuerpo del paquete si excede el tamaño máximo de la MTU
             fragmented_body = [packet.body[i:i + self.mtu_size] for i in range(0, len(packet.body), self.mtu_size)]
             for index, body in enumerate(fragmented_body):
                 new_packet = Frame(
-                    flags=packet.flags | 0x01,
+                    flags=packet.flags | 0x01,  # Marcar como fragmentado
                     length_bits=len(body) * 8,
                     compound_id=self.compound_id,
                     compound_size=len(fragmented_body),
                     index=index,
                     body=body
                 )
+                # Añadir el nuevo fragmento a la cola
                 self.queue.add_frame(new_packet)
             self.compound_id += 1
         else:
-            self.queue.add_frame(packet)
+            # El paquete no necesita fragmentación, añadirlo directamente a la cola
+            self.queue.add_frame(self.encoded_packet)
 
+        # Enviar la cola inmediatamente si se indica
         if is_immediate:
             self.send_queue()
 

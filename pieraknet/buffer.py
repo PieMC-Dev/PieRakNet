@@ -100,6 +100,8 @@ class Buffer(BytesIO):
         return struct.unpack('!H', ushrt)[0]
 
     def write_unsigned_short(self, data):
+        if not isinstance(data, int):
+            raise ValueError(f"Expected an integer, got {type(data).__name__}")
         self.write(struct.pack('!H', data))
 
     def read_magic(self):
