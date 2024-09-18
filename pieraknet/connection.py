@@ -154,8 +154,8 @@ class Connection:
             if not self.connected:
                 self.server.logger.info(f"Connection not established, handling packet type: {packet_type}")
                 if packet_type == ProtocolInfo.CONNECTION_REQUEST:
-                    self.server.logger.debug(f"Adding frame to queue: {frame}")
-                    self.add_to_queue(frame)
+                    self.server.logger.debug(f"Handling CONNECTION_REQUEST: {frame}")
+                    ConnectionRequestHandler.handle(frame.body, server=self.server, connection=self)
                 elif packet_type == ProtocolInfo.NEW_INCOMING_CONNECTION:
                     # TODO: Finish this implementation
                     try:

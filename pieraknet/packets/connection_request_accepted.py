@@ -1,7 +1,7 @@
 from pieraknet.packets.packet import Packet
 
 class ConnectionRequestAccepted(Packet):
-    PACKET_ID = 0x10
+    PACKET_ID = 0x10 # 16
     PACKET_TYPE = 'connection_request_accepted'
 
     def __init__(self, data: bytes = b''):
