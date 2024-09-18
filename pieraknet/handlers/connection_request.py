@@ -3,25 +3,28 @@ from pieraknet.packets.connection_request import ConnectionRequest
 from pieraknet.packets.connection_request_accepted import ConnectionRequestAccepted
 
 class ConnectionRequestHandler:
+    # Example packet: b'\t\xb3\xde\x85\x0fBa~.\x00\x00\x00\x00\x00\x12\xbd\x8d\x00'
     @staticmethod
-    def handle(packet: bytes, server, connection):
-        request_packet = ConnectionRequest(packet)
-        request_packet.decode()
+    def handle(frame_body, server, connection):
+        packet = ConnectionRequest(frame_body)
+        packet.decode()
 
         server.logger.debug("New Packet:")
-        server.logger.debug(f"- Packet ID: {request_packet.PACKET_ID}")
-        server.logger.debug(f"- Packet Body: {request_packet.getvalue()}")
+        server.logger.debug(f"- Packet ID: {packet.PACKET_ID}")
+        server.logger.debug(f"- Packet Body: {packet.getvalue()}")
         server.logger.debug(f"- Packet Name: Connection Request")
-        server.logger.debug(f"- Client Timestamp: {request_packet.client_timestamp}")
-        server.logger.debug(f"- Client GUID: {request_packet.client_guid}")
+        server.logger.debug(f"- Client Timestamp: {packet.client_timestamp}")
+        server.logger.debug(f"- Client GUID: {packet.client_guid}")
 
         new_packet = ConnectionRequestAccepted()
         new_packet.client_address = connection.address
         new_packet.system_index = 0
         new_packet.internal_ids = [('255.255.255.255', 19132)] * 10
-        new_packet.request_time = request_packet.client_timestamp
+        new_packet.request_time = packet.client_timestamp
         new_packet.accepted_time = int(time.time() * 1000)
         new_packet.encode()
+
+        server.send(new_packet.getvalue(), connection.address)
 
         server.logger.debug("Sent Packet:")
         server.logger.debug(f"- Packet ID: {new_packet.PACKET_ID}")
@@ -32,5 +35,3 @@ class ConnectionRequestHandler:
         server.logger.debug(f"- Internal Ids: {new_packet.internal_ids}")
         server.logger.debug(f"- Request Time: {new_packet.request_time}")
         server.logger.debug(f"- Accepted Time: {new_packet.accepted_time}")
-
-        return new_packet.getvalue()

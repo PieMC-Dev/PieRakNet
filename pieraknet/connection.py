@@ -24,19 +24,13 @@ class Connection:
         self.client_sequence_numbers = []
         self.client_sequence_number = 0
         self.server_sequence_number = 0
-        self.incoming_sequence_number = 0
         self.queue = FrameSetPacket(server=self.server)
-        self.server_reliable_frame_index = 0
-        self.client_reliable_frame_index = 0
-        self.channel_index = [0] * 32
         self.last_receive_time = time()
-        self.encoded_packet = None
         self.server.logger.info(f"Connection initialized: {self}")
 
     def update(self):
-        self.server.logger.debug(f"Updating connection: {self}")
         if (time() - self.last_receive_time) >= self.server.timeout:
-            self.server.logger.info(f"Connection timeout. Last receive time: {self.last_receive_time}, Current time: {time()}")
+            self.server.logger.info(f"Connection timeout. Disconnecting {self.address}")
             self.disconnect()
         self.send_ack_queue()
         self.send_nack_queue()
@@ -50,12 +44,16 @@ class Connection:
         self.last_receive_time = time()
         self.server.logger.info(f"Handling new packet from {self.address}: {data}")
         packet_type = data[0]
-        if packet_type == ProtocolInfo.ACK:
-            self.handle_ack(data)
-        elif packet_type == ProtocolInfo.NACK:
-            self.handle_nack(data)
-        elif ProtocolInfo.FRAME_SET_0 <= packet_type <= ProtocolInfo.FRAME_SET_F:
+        handlers = {
+            ProtocolInfo.ACK: self.handle_ack,
+            ProtocolInfo.NACK: self.handle_nack
+        }
+        if ProtocolInfo.FRAME_SET_0 <= packet_type <= ProtocolInfo.FRAME_SET_F:
             self.handle_frame_set(data)
+        elif packet_type in handlers:
+            handlers[packet_type](data)
+        elif packet_type == ProtocolInfo.DISCONNECT:
+            self.handle_disconnect(data)
         else:
             self.server.logger.warning(f"Unhandled packet type {packet_type} from {self.address}")
 
@@ -65,7 +63,6 @@ class Connection:
         packet.decode()
         self.server.logger.debug(f"Decoded ACK packet: {packet}")
         for sequence_number in packet.sequence_numbers:
-            self.server.logger.debug(f"Removing sequence number {sequence_number} from recovery queue")
             self.recovery_queue.pop(sequence_number, None)
 
     def handle_nack(self, data: bytes):
@@ -79,204 +76,155 @@ class Connection:
                 lost_packet = self.recovery_queue[sequence_number]
                 lost_packet.sequence_number = self.server_sequence_number
                 self.server_sequence_number += 1
-                lost_packet.encode()
-                self.send_data(lost_packet.data)
-                del self.recovery_queue[sequence_number]
+                self.send_data(lost_packet.encode())
 
     def handle_frame_set(self, data):
         self.server.logger.info(f"Handling Frame Set packet: {data}")
-
-        # Create a FrameSetPacket
         frame_set_packet = FrameSetPacket(server=self.server)
         frame_set_packet.decode(Buffer(data))
-
-        # Verificar números de secuencia
         incoming_sequence_number = frame_set_packet.sequence_number
         self.server.logger.debug(f"Incoming sequence number: {incoming_sequence_number}")
 
         if incoming_sequence_number not in self.client_sequence_numbers:
             self.client_sequence_numbers.append(incoming_sequence_number)
             self.ack_queue.append(incoming_sequence_number)
-            self.server.logger.debug(f"Updated ACK queue: {self.ack_queue}")
-
-            hole_size = incoming_sequence_number - self.client_sequence_number
-            if hole_size > 0:
-                self.server.logger.info(f"Detected packet loss. Hole size: {hole_size}")
-                self.nack_queue.extend(range(self.client_sequence_number + 1, incoming_sequence_number))
-
+            self.handle_packet_loss(incoming_sequence_number)
             self.client_sequence_number = incoming_sequence_number
 
             for frame in frame_set_packet.frames:
-                if not (2 <= frame.flags <= 7 and frame.flags != 5):
-                    self.server.logger.debug(f"Handling frame")
-                    self.handle_frame(frame)
+                if frame.flags & 0x01:
+                    self.handle_fragmented_frame(frame)
                 else:
-                    self.server.logger.debug(f"Handling frame: {frame.flags}")
-                    hole_size = frame.reliable_frame_index - self.client_reliable_frame_index
-                    if hole_size == 0:
-                        self.handle_frame(frame)
-                        self.client_reliable_frame_index += 1
-                    elif hole_size > 0:
-                        self.nack_queue.append(self.client_reliable_frame_index + 1)
-                        self.client_reliable_frame_index = frame.reliable_frame_index
-                        self.handle_frame(frame)
+                    self.handle_frame(frame)
+
+    def handle_packet_loss(self, incoming_sequence_number):
+        hole_size = incoming_sequence_number - self.client_sequence_number
+        if hole_size > 0:
+            self.server.logger.info(f"Detected packet loss. Hole size: {hole_size}")
+            self.nack_queue.extend(range(self.client_sequence_number + 1, incoming_sequence_number))
 
     def handle_fragmented_frame(self, packet):
         self.server.logger.info(f"Handling Fragmented Frame: {packet}")
         fragments = self.fragmented_packets.setdefault(packet.compound_id, {})
         fragments[packet.index] = packet
-        self.server.logger.debug(f"Updated fragments for compound_id {packet.compound_id}: {fragments}")
         if len(fragments) == packet.compound_size:
             self.server.logger.info(f"Reassembling fragmented frame for compound_id {packet.compound_id}")
-            new_frame = Frame(flags=0, length_bits=0)
-            new_frame.body = b''.join(fragments[i].body for i in range(packet.compound_size))
+            body = b''.join(fragments[i].body for i in range(packet.compound_size))
+            new_frame = Frame(flags=0, length_bits=0, body=body)
             del self.fragmented_packets[packet.compound_id]
             self.handle_frame(new_frame)
 
     def handle_frame(self, frame):
         self.server.logger.info(f"Handling Frame: {frame}")
-
-        # Verifica que el paquete tenga el atributo 'flags' y 'body'
-        if not hasattr(frame, 'flags') or not hasattr(frame, 'body'):
+        if not (hasattr(frame, 'flags') and hasattr(frame, 'body')):
             self.server.logger.error("Invalid packet structure")
             return
 
-        # Maneja los paquetes fragmentados
-        if frame.flags & 0x01:
-            self.server.logger.debug(f"Handling fragmented frame")
-            self.handle_fragmented_frame(frame)
+        if not self.connected:
+            self.handle_connection_requests(frame)
         else:
-            self.server.logger.debug(f"Handling non-fragmented frame")
-            # Determina el tipo de paquete
-            packet_type = frame.body[0]
-            self.server.logger.debug(f"Packet type: {packet_type}")
+            self.handle_established_connection(frame)
 
-            if not self.connected:
-                self.server.logger.info(f"Connection not established, handling packet type: {packet_type}")
-                if packet_type == ProtocolInfo.CONNECTION_REQUEST:
-                    self.server.logger.debug(f"Handling CONNECTION_REQUEST: {frame}")
-                    ConnectionRequestHandler.handle(frame.body, server=self.server, connection=self)
-                elif packet_type == ProtocolInfo.NEW_INCOMING_CONNECTION:
-                    # TODO: Finish this implementation
-                    try:
-                        packet = NewIncomingConnection(packet.body)
-                        packet.decode()
-                    except Exception as e:
-                        self.server.logger.error(f"Error decoding New Incoming Connection packet: {e}")
-                        return
-                    self.server.logger.debug(f"Decoded New Incoming Connection packet: {packet}")
-                    if packet.server_address[1] == self.server.port:
-                        self.connected = True
-                        self.server.logger.info(f"Connection established with {self.address}")
-                        if hasattr(self.server, "interface") and hasattr(self.server.interface, "on_new_incoming"):
-                            self.server.interface.on_new_incoming(self)
-                else:
-                    self.server.logger.info(f"Unknown packet type: {packet_type}, aborting connection.")
-            else:
-                self.server.logger.info(f"Connection established, handling packet type: {packet_type}")
-                if packet_type == ProtocolInfo.ONLINE_PING:
-                    new_frame = Frame(flags=0, length_bits=0)
-                    try:
-                        new_frame.body = OnlinePingHandler.handle(OnlinePing(packet.body), self, self.server)
-                    except Exception as e:
-                        self.server.logger.error(f"Error handling ONLINE_PING: {e}")
-                        return
-                    self.add_to_queue(new_frame, False)
-                elif packet_type == ProtocolInfo.DISCONNECT:
-                    self.disconnect()
-                elif packet_type == ProtocolInfo.GAME_PACKET:
-                    if hasattr(self.server, "interface") and hasattr(self.server.interface, "on_game_packet"):
-                        self.server.interface.on_game_packet(packet, self)
-                else:
-                    if hasattr(self.server, "interface") and hasattr(self.server.interface, "on_unknown_packet"):
-                        self.server.interface.on_unknown_packet(packet, self)
+    def handle_connection_requests(self, frame):
+        packet_type = frame.body[0]
+        if packet_type == ProtocolInfo.CONNECTION_REQUEST:
+            ConnectionRequestHandler.handle(frame.body, server=self.server, connection=self)
+        elif packet_type == ProtocolInfo.NEW_INCOMING_CONNECTION:
+            self.handle_new_incoming_connection(frame)
+        else:
+            self.server.logger.info(f"Unknown packet type: {packet_type}, aborting connection.")
 
-    def send_queue(self):
-        self.server.logger.debug(f"Sending packet queue for connection: {self.address}")
-        if not self.queue.frames:
-            self.server.logger.debug("No frames to send.")
-            return
+    def handle_new_incoming_connection(self, frame):
+        try:
+            packet = NewIncomingConnection(frame.body)
+            packet.decode()
+            if packet.server_address[1] == self.server.port:
+                self.connected = True
+                self.server.logger.info(f"Connection established with {self.address}")
+                if hasattr(self.server, "interface") and hasattr(self.server.interface, "on_new_incoming"):
+                    self.server.interface.on_new_incoming(self)
+        except Exception as e:
+            self.server.logger.error(f"Error decoding New Incoming Connection packet: {e}")
 
-        self.queue.sequence_number = self.server_sequence_number
-        self.server_sequence_number += 1
-        self.recovery_queue[self.queue.sequence_number] = self.queue
-        self.server.logger.debug(f"Encoding packet queue: {len(self.queue.frames)} frames")
-        
-        # Crear un buffer y pasarlo al método encode de FrameSetPacket
-        buffer = Buffer()
-        encoded_data = self.queue.encode(buffer=buffer)
-        
-        if encoded_data is None:
-            self.server.logger.error("Failed to encode packet queue")
-            return
-        
-        # Enviar los datos codificados
-        self.send_data(encoded_data)
-        
-        # Reset the queue
-        self.queue = FrameSetPacket(server=self.server)
+    def handle_established_connection(self, frame):
+        packet_type = frame.body[0]
+        if packet_type == ProtocolInfo.ONLINE_PING:
+            self.process_online_ping(frame)
+        elif packet_type == ProtocolInfo.GAME_PACKET:
+            self.process_game_packet(frame)
+        elif packet_type == ProtocolInfo.DISCONNECT:
+            self.handle_disconnect(frame.body)
+        else:
+            self.process_unknown_packet(frame)
+
+    def process_online_ping(self, frame):
+        try:
+            response_frame = Frame(flags=0, length_bits=0)
+            response_frame.body = OnlinePingHandler.handle(OnlinePing(frame.body), self, self.server)
+            self.add_to_queue(response_frame, is_immediate=False)
+        except Exception as e:
+            self.server.logger.error(f"Error handling ONLINE_PING: {e}")
+
+    def process_game_packet(self, frame):
+        if hasattr(self.server, "interface") and hasattr(self.server.interface, "on_game_packet"):
+            self.server.interface.on_game_packet(frame.body, self)
+
+    def process_unknown_packet(self, frame):
+        if hasattr(self.server, "interface") and hasattr(self.server.interface, "on_unknown_packet"):
+            self.server.interface.on_unknown_packet(frame.body, self)
+
+    def handle_disconnect(self, data):
+        self.server.logger.info(f"Handling DISCONNECT packet: {data}")
+        self.disconnect()
 
     def add_to_queue(self, packet: Frame, is_immediate=True):
         if not isinstance(packet, Frame):
-            print(f"Error: {type(packet)} en vez de Frame")
+            self.server.logger.error(f"Error: Expected Frame, got {type(packet)}")
             return
-        
+
         self.server.logger.info(f"Adding packet to queue: {packet}, immediate: {is_immediate}")
+        encoded_packet = packet.encode(buffer=Buffer())
 
-        self.encoded_packet = packet.encode(buffer=Buffer())  # Codificar el paquete para obtener los datos
-        
-        # Verificar que la queue no sea None
-        if self.queue is None:
-            self.server.logger.warning("Queue is None, initializing a new FrameSetPacket")
-            self.queue = FrameSetPacket(server=self.server)
-
-        if len(self.encoded_packet) > self.mtu_size:
-            self.server.logger.info(f"Fragmenting packet as it exceeds MTU size: {self.mtu_size}")
-
-            # Fragmentar el cuerpo del paquete si excede el tamaño máximo de la MTU
-            fragmented_body = [self.encoded_packet[i:i + self.mtu_size] for i in range(0, len(self.encoded_packet), self.mtu_size)]
-            for index, body in enumerate(fragmented_body):
-                new_packet = Frame(
-                    flags=packet.flags | 0x01,  # Marcar como fragmentado
-                    length_bits=len(body) * 8,
-                    compound_id=self.compound_id,
-                    compound_size=len(fragmented_body),
-                    index=index,
-                    body=body
-                )
-                # Añadir el nuevo fragmento a la cola
-                self.queue.add_frame(new_packet)
-            self.compound_id += 1
+        if len(encoded_packet) > self.mtu_size:
+            self.fragment_and_queue(encoded_packet, packet)
         else:
-            # El paquete no necesita fragmentación, añadirlo directamente a la cola
-            self.queue.add_frame(packet)  # Añadir el paquete original, no el codificado
+            self.queue.add_frame(packet)
 
-        # Enviar la cola inmediatamente si se indica
         if is_immediate:
             self.send_queue()
 
+    def fragment_and_queue(self, encoded_packet, packet):
+        self.server.logger.info(f"Fragmenting packet as it exceeds MTU size: {self.mtu_size}")
+        fragmented_body = [encoded_packet[i:i + self.mtu_size] for i in range(0, len(encoded_packet), self.mtu_size)]
+        for index, body in enumerate(fragmented_body):
+            fragment = Frame(
+                flags=packet.flags | 0x01,
+                length_bits=len(body) * 8,
+                compound_id=self.compound_id,
+                index=index,
+                body=body
+            )
+            self.add_to_queue(fragment, is_immediate=False)
+        self.compound_id += 1
+
     def send_ack_queue(self):
-        if self.ack_queue:
-            self.server.logger.debug(f"Sending ACK queue: {self.ack_queue}")
-            packet = Ack()
-            packet.sequence_numbers = self.ack_queue.copy()
-            packet.encode()
-            self.send_data(packet.data)
-            self.ack_queue.clear()
+        while self.ack_queue:
+            sequence_number = self.ack_queue.pop(0)
+            ack_packet = Ack(sequence_number)
+            self.send_data(ack_packet.encode())
 
     def send_nack_queue(self):
-        if self.nack_queue:
-            self.server.logger.debug(f"Sending NACK queue: {self.nack_queue}")
-            packet = Nack()
-            packet.sequence_numbers = self.nack_queue.copy()
-            packet.encode()
-            self.send_data(packet.data)
-            self.nack_queue.clear()
+        while self.nack_queue:
+            sequence_number = self.nack_queue.pop(0)
+            nack_packet = Nack([sequence_number])
+            self.send_data(nack_packet.encode())
 
     def disconnect(self):
-        self.server.logger.info(f"Disconnecting from {self.address}")
-        packet = Disconnect()
-        packet.encode()
-        self.send_data(packet.data)
-        if hasattr(self.server, "interface") and hasattr(self.server.interface, "on_disconnect"):
-            self.server.interface.on_disconnect(self)
+        self.server.logger.info(f"Disconnecting connection: {self.address}")
+        disconnect_packet = Disconnect()
+        self.send_data(disconnect_packet.encode())
+        self.connected = False
+        self.server.remove_connection(self)
+
+    def __repr__(self):
+        return f"Connection(address={self.address}, guid={self.guid})"
