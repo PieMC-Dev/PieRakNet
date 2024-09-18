@@ -35,5 +35,6 @@ class OpenConnectionRequest2Handler:
         server.logger.debug(f"- Client Address: {new_packet.client_address}")
         server.logger.debug(f"- MTU Size: {new_packet.mtu_size}")
 
-        connection = Connection(address, server, packet.mtu_size, packet.client_guid)
+        # Initialize the Connection with server and address
+        connection = Connection(server, address)
         server.add_connection(connection)

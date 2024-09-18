@@ -53,6 +53,10 @@ class Server:
 
     def add_connection(self, connection):
         self.connections.append(connection)
+        self.logger.debug(f"Added connection: {connection} for address {connection.address}")
+
+    def get_all_connections(self):
+        return self.connections
 
     def start(self):
         self.running = True
@@ -75,8 +79,11 @@ class Server:
                     packet = OpenConnectionRequest2(data)
                     OpenConnectionRequest2Handler.handle(packet, self, client)
                 elif ProtocolInfo.FRAME_SET_0 <= data[0] <= ProtocolInfo.FRAME_SET_F:
-                    connection = self.get_connection(client)
-                    connection.handle(data)
+                    try:
+                        connection = self.get_connection(client)
+                        connection.handle(data)
+                    except ConnectionNotFound:
+                        self.logger.error(f"Connection not found for address {client}")
 
     def stop(self):
         self.running = False
