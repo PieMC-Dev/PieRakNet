@@ -84,11 +84,8 @@ class Frame:
         self.server.logger.debug(f"Read Body (Length {body_length} bytes): {self.body}")
 
     def encode(self, buffer: Buffer):
-        # Ensure flags, length_in_bits, and other attributes are integers
-        if not isinstance(self.flags, int):
-            raise TypeError("flags must be an integer")
-        if not isinstance(self.length_in_bits, int):
-            raise TypeError("length_in_bits must be an integer")
+        if not isinstance(self.flags, int) or not isinstance(self.length_in_bits, int):
+            raise TypeError("flags and length_in_bits must be integers")
 
         buffer.write_byte(self.flags)
         self.server.logger.debug(f"Written Frame Flags: {self.flags}")

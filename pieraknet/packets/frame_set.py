@@ -37,7 +37,7 @@ from pieraknet.packets.frame import Frame
 class FrameSetPacket:
     def __init__(self, server=None):
         self.server = server
-        self.packet_id = 0  # Ensure default values are integers
+        self.packet_id = 0
         self.sequence_number = 0
         self.frames = []
 
@@ -55,17 +55,14 @@ class FrameSetPacket:
             self.server.logger.debug(f"Read Frame: {frame}")
 
     def encode(self, buffer: Buffer):
-        # Escribir packet_id
         buffer.write_byte(self.packet_id)
         self.server.logger.debug(f"Written Packet ID: {self.packet_id}")
         
-        # Escribir sequence_number
         buffer.write_uint24le(self.sequence_number)
         self.server.logger.debug(f"Written Sequence Number: {self.sequence_number}")
         
-        # Codificar y añadir todos los frames
         for frame in self.frames:
-            buffer.write(frame.encode())
+            buffer.write(frame.encode(buffer = Buffer()))
             self.server.logger.debug(f"Written Frame: {frame}")
         
         return buffer.getvalue()

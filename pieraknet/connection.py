@@ -25,7 +25,7 @@ class Connection:
         self.client_sequence_number = 0
         self.server_sequence_number = 0
         self.incoming_sequence_number = 0
-        self.queue = None
+        self.queue = FrameSetPacket(server=self.server)
         self.server_reliable_frame_index = 0
         self.client_reliable_frame_index = 0
         self.channel_index = [0] * 32
@@ -133,34 +133,31 @@ class Connection:
             del self.fragmented_packets[packet.compound_id]
             self.handle_frame(new_frame)
 
-    def handle_frame(self, packet):
-        self.server.logger.info(f"Handling Frame: {packet}")
+    def handle_frame(self, frame):
+        self.server.logger.info(f"Handling Frame: {frame}")
 
         # Verifica que el paquete tenga el atributo 'flags' y 'body'
-        if not hasattr(packet, 'flags') or not hasattr(packet, 'body'):
+        if not hasattr(frame, 'flags') or not hasattr(frame, 'body'):
             self.server.logger.error("Invalid packet structure")
             return
 
         # Maneja los paquetes fragmentados
-        if packet.flags & 0x01:
+        if frame.flags & 0x01:
             self.server.logger.debug(f"Handling fragmented frame")
-            self.handle_fragmented_frame(packet)
+            self.handle_fragmented_frame(frame)
         else:
             self.server.logger.debug(f"Handling non-fragmented frame")
             # Determina el tipo de paquete
-            packet_type = packet.body[0]
+            packet_type = frame.body[0]
             self.server.logger.debug(f"Packet type: {packet_type}")
 
             if not self.connected:
                 self.server.logger.info(f"Connection not established, handling packet type: {packet_type}")
                 if packet_type == ProtocolInfo.CONNECTION_REQUEST:
-                    try:
-                        new_packet = ConnectionRequestHandler.handle(packet.body, self.server, self)
-                    except Exception as e:
-                        self.server.logger.error(f"Error handling CONNECTION_REQUEST: {e}")
-                        return
-                    self.add_to_queue(new_packet)
+                    self.server.logger.debug(f"Adding frame to queue: {frame}")
+                    self.add_to_queue(frame)
                 elif packet_type == ProtocolInfo.NEW_INCOMING_CONNECTION:
+                    # TODO: Finish this implementation
                     try:
                         packet = NewIncomingConnection(packet.body)
                         packet.decode()
@@ -220,15 +217,24 @@ class Connection:
         self.queue = FrameSetPacket(server=self.server)
 
     def add_to_queue(self, packet: Frame, is_immediate=True):
+        if not isinstance(packet, Frame):
+            print(f"Error: {type(packet)} en vez de Frame")
+            return
+        
         self.server.logger.info(f"Adding packet to queue: {packet}, immediate: {is_immediate}")
 
-        self.encoded_packet = packet
+        self.encoded_packet = packet.encode(buffer=Buffer())  # Codificar el paquete para obtener los datos
         
+        # Verificar que la queue no sea None
+        if self.queue is None:
+            self.server.logger.warning("Queue is None, initializing a new FrameSetPacket")
+            self.queue = FrameSetPacket(server=self.server)
+
         if len(self.encoded_packet) > self.mtu_size:
             self.server.logger.info(f"Fragmenting packet as it exceeds MTU size: {self.mtu_size}")
 
             # Fragmentar el cuerpo del paquete si excede el tamaño máximo de la MTU
-            fragmented_body = [packet.body[i:i + self.mtu_size] for i in range(0, len(packet.body), self.mtu_size)]
+            fragmented_body = [self.encoded_packet[i:i + self.mtu_size] for i in range(0, len(self.encoded_packet), self.mtu_size)]
             for index, body in enumerate(fragmented_body):
                 new_packet = Frame(
                     flags=packet.flags | 0x01,  # Marcar como fragmentado
@@ -243,7 +249,7 @@ class Connection:
             self.compound_id += 1
         else:
             # El paquete no necesita fragmentación, añadirlo directamente a la cola
-            self.queue.add_frame(self.encoded_packet)
+            self.queue.add_frame(packet)  # Añadir el paquete original, no el codificado
 
         # Enviar la cola inmediatamente si se indica
         if is_immediate:
