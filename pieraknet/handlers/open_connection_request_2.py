@@ -35,5 +35,22 @@ class OpenConnectionRequest2Handler:
         server.logger.debug(f"- Client Address: {new_packet.client_address}")
         server.logger.debug(f"- MTU Size: {new_packet.mtu_size}")
 
-        connection = Connection(address, server, packet.mtu_size, packet.client_guid)
+        # Initialize the Connection with server and address
+        connection = Connection(server, address)
         server.add_connection(connection)
+
+# 08:50:07 [PieRakNet - DEBUG] - Sent Packet:
+# 08:50:07 [PieRakNet - DEBUG] - - Packet ID: 8
+# 08:50:07 [PieRakNet - DEBUG] - - Packet Body: b'\x00\xff\xff\x00\xfe\xfe\xfe\xfe\xfd\xfd\xfd\xfd\x124Vx\x11\x92\xa2\r\xc4\r\n;\x04?W\xfd\xa8\x9c\xb4\x05\xd4\x00'
+# 08:50:07 [PieRakNet - DEBUG] - - Packet Name: Open Connection Reply 2
+# 08:50:07 [PieRakNet - DEBUG] - - MAGIC: b'\x00\xff\xff\x00\xfe\xfe\xfe\xfe\xfd\xfd\xfd\xfd\x124Vx'
+# 08:50:07 [PieRakNet - DEBUG] - - Server GUID: 1266252625251994171
+# 08:50:07 [PieRakNet - DEBUG] - - Client Address: ('192.168.2.87', 40116)
+# 08:50:07 [PieRakNet - DEBUG] - - MTU Size: 1492
+
+# Clent address: \x04?W\xfd\xa8\x9c\xb4
+# System index: \x00\x00
+# Internal IDs: \x04\x00\x00\x00\x00J\xbc
+# Request time: \x00\x00\x00\x00\x00\x05\x7fT
+# Time: \x00\x00\x01\x92\t\x0b\x95\x88
+#  b'\x04?W\xfd\xa8\x9c\xb4\x00\x00\x04\x00\x00\x00\x00J\xbc\x00\x00\x00\x00\x00\x05\x7fT\x00\x00\x01\x92\t\x0b\x95\x88'

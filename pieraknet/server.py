@@ -42,8 +42,13 @@ class Server:
 
     def send(self, data, address: tuple):
         if not isinstance(data, bytes):
+            self.logger.debug(f"Encoding data to bytes: {data}")
             data = str(data).encode()
-        self.socket.sendto(data, address)
+        self.logger.debug(f"Sending data to {address}: {data}")
+        try:
+            self.socket.sendto(data, address)
+        except:
+            self.logger.error(f"Failed to send data to {address}: {data}")
 
     def get_connection(self, address):
         for connection in self.connections:
@@ -53,6 +58,10 @@ class Server:
 
     def add_connection(self, connection):
         self.connections.append(connection)
+        self.logger.debug(f"Added connection: {connection} for address {connection.address}")
+
+    def get_all_connections(self):
+        return self.connections
 
     def start(self):
         self.running = True
@@ -75,8 +84,11 @@ class Server:
                     packet = OpenConnectionRequest2(data)
                     OpenConnectionRequest2Handler.handle(packet, self, client)
                 elif ProtocolInfo.FRAME_SET_0 <= data[0] <= ProtocolInfo.FRAME_SET_F:
-                    connection = self.get_connection(client)
-                    connection.handle(data)
+                    try:
+                        connection = self.get_connection(client)
+                        connection.handle(data)
+                    except ConnectionNotFound:
+                        self.logger.error(f"Connection not found for address {client}")
 
     def stop(self):
         self.running = False
