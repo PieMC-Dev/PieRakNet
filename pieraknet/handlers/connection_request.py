@@ -21,7 +21,7 @@ class ConnectionRequestHandler:
         new_packet = ConnectionRequestAccepted()
         new_packet.client_address = connection.address
         new_packet.system_index = 0
-        new_packet.internal_ids = [('255.255.255.255', 19132)] * 10
+        new_packet.internal_ids = [('255.255.255.255', 19132)]
         new_packet.request_time = packet.client_timestamp
         new_packet.accepted_time = int(time.time() * 1000)
 
@@ -37,4 +37,4 @@ class ConnectionRequestHandler:
         server.logger.debug(f"- Request Time: {new_packet.request_time}")
         server.logger.debug(f"- Accepted Time: {new_packet.accepted_time}")
 
-        server.send(new_packet.getvalue(), connection.address)
+        return new_packet.getvalue()
