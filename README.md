@@ -1,3 +1,6 @@
+> [!IMPORTANT]  
+> We are stuck on 0x10 package (Connection Request Accepted), if you know how to fix it, contribute please.
+
 # PieRakNet 🍰🔗
 
 <p align="center">
