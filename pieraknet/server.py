@@ -42,8 +42,13 @@ class Server:
 
     def send(self, data, address: tuple):
         if not isinstance(data, bytes):
+            self.logger.debug(f"Encoding data to bytes: {data}")
             data = str(data).encode()
-        self.socket.sendto(data, address)
+        self.logger.debug(f"Sending data to {address}: {data}")
+        try:
+            self.socket.sendto(data, address)
+        except:
+            self.logger.error(f"Failed to send data to {address}: {data}")
 
     def get_connection(self, address):
         for connection in self.connections:

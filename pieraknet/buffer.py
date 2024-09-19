@@ -194,11 +194,8 @@ class Buffer(BytesIO):
     def read_address(self):
         ipv = self.read_byte()
         if ipv == 4:
-            hostname_parts = []
-            for part in range(4):
-                byte_value = self.read_byte()
-                hostname_parts.append(str(~byte_value & 0xff))
-            hostname = ".".join(hostname_parts)
+            octets = [self.read_byte() for _ in range(4)]
+            hostname = '.'.join(map(str, octets))
             port = self.read_unsigned_short()
             return hostname, port
         else:
@@ -207,25 +204,23 @@ class Buffer(BytesIO):
     def write_address(self, address: tuple):
         if not isinstance(address, tuple) or len(address) != 2:
             raise TypeError("Address must be a tuple with (hostname, port).")
+        
         hostname, port = address
+
         if not isinstance(hostname, str):
             raise TypeError("Hostname must be a string.")
         if not isinstance(port, int) or not (0 <= port <= 65535):
             raise ValueError("Port must be an integer between 0 and 65535.")
         
-        hostname_parts = hostname.split('.')
-        if len(hostname_parts) != 4:
-            raise ValueError("Invalid hostname format.")
-        
+        # Write IPv4 address
         self.write_byte(4)
-        for part in hostname_parts:
-            try:
-                byte_value = int(part)
-                if not (0 <= byte_value <= 255):
-                    raise ValueError("Each part of the hostname must be between 0 and 255.")
-                self.write_byte(~byte_value & 0xff)
-            except ValueError:
-                raise ValueError("Invalid part in hostname.")
+        octets = hostname.split('.')
+        if len(octets) != 4:
+            raise ValueError("Invalid IPv4 address format.")
+        
+        # Convert the octets to bytes and write them
+        for octet in octets:
+            self.write_byte(int(octet))
         
         self.write_unsigned_short(port)
 
