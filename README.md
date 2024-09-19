@@ -1,5 +1,5 @@
 > [!IMPORTANT]  
-> We are stuck on 0x10 package (Connection Request Accepted), if you know how to fix it, contribute please.
+> We are stuck on 0x10 package (Connection Request Accepted), if you know how to fix it, contribute please. RakNet documentation: https://vp817.github.io/RakNetProtocolDoc/, https://wiki.vg/Raknet_Protocol
 
 # PieRakNet 🍰🔗
 
