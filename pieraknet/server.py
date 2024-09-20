@@ -60,6 +60,10 @@ class Server:
         self.connections.append(connection)
         self.logger.debug(f"Added connection: {connection} for address {connection.address}")
 
+    def remove_connection(self, connection):
+        self.connections.remove(connection)
+        self.logger.debug(f"Removed connection: {connection} for address {connection.address}")
+
     def get_all_connections(self):
         return self.connections
 
