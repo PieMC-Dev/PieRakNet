@@ -1,6 +1,7 @@
 from pieraknet.buffer import Buffer
 from pieraknet.packets.packet import Packet
 from pieraknet.packets.frame import Frame
+from pieraknet.protocol_info import ProtocolInfo
 
 # Example packet: b'\x84\x00\x00\x00\x40\x00\x90\x00\x00\x00\t\xb3;\xc81\xbe\xfb\x96*\x00\x00\x00\x00\x00\x00\xdb\xf2\x00'
 # x84: Packet ID
@@ -37,7 +38,7 @@ from pieraknet.packets.frame import Frame
 class FrameSetPacket:
     def __init__(self, server=None):
         self.server = server
-        self.packet_id = 0
+        self.packet_id = ProtocolInfo.FRAME_SET
         self.sequence_number = 0
         self.frames = []
 
