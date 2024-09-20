@@ -65,7 +65,7 @@ class Connection:
             #Body
             ConnectionRequestAcceptedPacket = ConnectionRequestHandler.handle(frame.body, self.server, self)
             #Create a frame set
-            frameSetPacket = FrameSetPacket().create_frame_set_packet(ConnectionRequestAcceptedPacket)
+            frameSetPacket = FrameSetPacket().create_frame_set_packet(ConnectionRequestAcceptedPacket, flags=0x60)
 
             buffer = Buffer()
             frameSetPacket.encode(buffer)

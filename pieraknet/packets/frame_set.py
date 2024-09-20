@@ -70,11 +70,11 @@ class FrameSetPacket:
         
         return buffer.getvalue()
 
-    def create_frame_set_packet(self, body):
+    def create_frame_set_packet(self, body, flags=0):
         # Crear un nuevo frame con el cuerpo provisto
         frame = Frame(self.server)
         frame.server = self.server
-        frame.flags = 0
+        frame.flags = flags
         frame.length_in_bits = len(body) * 8
         frame.reliable_frame_index = 0
         frame.sequenced_frame_index = 0
