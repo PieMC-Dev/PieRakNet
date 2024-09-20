@@ -1,4 +1,5 @@
 import time
+from pieraknet.buffer import Buffer
 from pieraknet.packets.frame_set import FrameSetPacket
 from pieraknet.packets.online_ping import OnlinePing
 from pieraknet.packets.connection_request import ConnectionRequest
@@ -56,15 +57,20 @@ class Connection:
     def handle_packet_loss(self, incoming_sequence_number):
         PacketLossHandler.handle(incoming_sequence_number, self.server, self)
 
-    def handle_fragmented_frame(self, frame):
-        FragmentedFrameHandler.handle(frame, self.server, self)
-
     def handle_frame(self, frame):
         FrameHandler.handle(frame, self.server, self)
 
     def handle_connection_requests(self, frame):
         if frame.body[0] == ProtocolInfo.CONNECTION_REQUEST:
-            ConnectionRequestHandler.handle(frame.body, self.server, self)
+            #Body
+            ConnectionRequestAcceptedPacket = ConnectionRequestHandler.handle(frame.body, self.server, self)
+            #Create a frame set
+            frameSetPacket = FrameSetPacket().create_frame_set_packet(ConnectionRequestAcceptedPacket)
+
+            buffer = Buffer()
+            frameSetPacket.encode(buffer)
+
+            self.send_data(buffer.getvalue())
         elif frame.body[0] == ProtocolInfo.NEW_INCOMING_CONNECTION:
             NewIncomingConnectionHandler.handle(frame.body, self.server, self)
 
@@ -86,8 +92,8 @@ class Connection:
 
     def send_data(self, data):
         self.server.send(data, self.address)
-        self.recovery_queue[self.server_sequence_number] = FrameSetPacket.encode(data)
-        self.server_sequence_number += 1
+        # self.recovery_queue[self.server_sequence_number] = FrameSetPacket.encode(data, Buffer)
+        # self.server_sequence_number += 1
 
     def handle_frame_set_packet(self, frame_set_packet):
         FrameSetPacket.decode(frame_set_packet, self.server, self)

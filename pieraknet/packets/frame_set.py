@@ -1,6 +1,7 @@
 from pieraknet.buffer import Buffer
 from pieraknet.packets.packet import Packet
 from pieraknet.packets.frame import Frame
+from pieraknet.protocol_info import ProtocolInfo
 
 # Example packet: b'\x84\x00\x00\x00\x40\x00\x90\x00\x00\x00\t\xb3;\xc81\xbe\xfb\x96*\x00\x00\x00\x00\x00\x00\xdb\xf2\x00'
 # x84: Packet ID
@@ -37,37 +38,52 @@ from pieraknet.packets.frame import Frame
 class FrameSetPacket:
     def __init__(self, server=None):
         self.server = server
-        self.packet_id = 0
+        self.packet_id = ProtocolInfo.FRAME_SET
         self.sequence_number = 0
         self.frames = []
 
     def decode(self, buffer: Buffer):
         self.packet_id = buffer.read_byte()
-        self.server.logger.debug(f"Read Packet ID: {self.packet_id}")
+        print(f"Read Packet ID: {self.packet_id}")
 
         self.sequence_number = buffer.read_uint24le()
-        self.server.logger.debug(f"Read Sequence Number: {self.sequence_number}")
+        print(f"Read Sequence Number: {self.sequence_number}")
 
         while not buffer.feos():
             frame = Frame(self.server)
             frame.decode(buffer)
             self.frames.append(frame)
-            self.server.logger.debug(f"Read Frame: {frame}")
+            print(f"Read Frame: {frame}")
 
     def encode(self, buffer: Buffer):
-        buffer.write_byte(self.packet_id)
-        self.server.logger.debug(f"Written Packet ID: {self.packet_id}")
+        buffer.write_byte(self.packet_id) # has to be 0x80
+        print(f"Written Packet ID: {self.packet_id}")
         
         buffer.write_uint24le(self.sequence_number)
-        self.server.logger.debug(f"Written Sequence Number: {self.sequence_number}")
+        print(f"Written Sequence Number: {self.sequence_number}")
         
         for frame in self.frames:
-            buffer.write(frame.encode(buffer = Buffer()))
-            self.server.logger.debug(f"Written Frame: {frame}")
+            frame_buffer = Buffer()
+            frame.encode(frame_buffer)
+            buffer.write(frame_buffer.getvalue())
+            print(f"Written Frame: {frame}")
         
         return buffer.getvalue()
-    
-    def add_frame(self, frame):
-        if not isinstance(frame, Frame):
-            raise TypeError("Expected a Frame instance.")
+
+    def create_frame_set_packet(self, body):
+        # Crear un nuevo frame con el cuerpo provisto
+        frame = Frame(self.server)
+        frame.server = self.server
+        frame.flags = 0
+        frame.length_in_bits = len(body) * 8
+        frame.reliable_frame_index = 0
+        frame.sequenced_frame_index = 0
+        frame.ordered_frame_index = 0
+        frame.order_channel = 0
+        frame.compound_size = 0
+        frame.compound_id = 0
+        frame.index = 0
+        frame.body = body
+
         self.frames.append(frame)
+        return self

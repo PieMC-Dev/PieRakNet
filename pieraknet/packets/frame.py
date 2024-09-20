@@ -51,73 +51,73 @@ class Frame:
         reliability_type = (self.flags >> 5) & 0x07
         is_fragmented = (self.flags >> 4) & 0x01
 
-        self.server.logger.debug(f"Fragmented Frame: {is_fragmented}")
-        self.server.logger.debug(f"Read Frame Flags: {self.flags}")
+        print(f"Fragmented Frame: {is_fragmented}")
+        print(f"Read Frame Flags: {self.flags}")
 
         self.length_in_bits = buffer.read_unsigned_short()
-        self.server.logger.debug(f"Read Length in Bits: {self.length_in_bits}")
+        print(f"Read Length in Bits: {self.length_in_bits}")
 
         if reliability_type in {2, 3, 4, 6, 7}:
             self.reliable_frame_index = buffer.read_uint24le()
-            self.server.logger.debug(f"Read Reliable Frame Index: {self.reliable_frame_index}")
+            print(f"Read Reliable Frame Index: {self.reliable_frame_index}")
 
         if reliability_type in {1, 4}:
             self.sequenced_frame_index = buffer.read_uint24le()
-            self.server.logger.debug(f"Read Sequenced Frame Index: {self.sequenced_frame_index}")
+            print(f"Read Sequenced Frame Index: {self.sequenced_frame_index}")
 
         if reliability_type in {1, 3, 4, 7}:
             self.ordered_frame_index = buffer.read_uint24le()
             self.order_channel = buffer.read_byte()
-            self.server.logger.debug(f"Read Ordered Frame Index: {self.ordered_frame_index}")
-            self.server.logger.debug(f"Read Order Channel: {self.order_channel}")
+            print(f"Read Ordered Frame Index: {self.ordered_frame_index}")
+            print(f"Read Order Channel: {self.order_channel}")
 
         if is_fragmented:
             self.compound_size = buffer.read_int()
-            self.server.logger.debug(f"Read Compound Size: {self.compound_size}")
+            print(f"Read Compound Size: {self.compound_size}")
             self.compound_id = buffer.read_short()
-            self.server.logger.debug(f"Read Compound ID: {self.compound_id}")
+            print(f"Read Compound ID: {self.compound_id}")
             self.index = buffer.read_int()
-            self.server.logger.debug(f"Read Index: {self.index}")
+            print(f"Read Index: {self.index}")
 
         body_length = (self.length_in_bits + 7) // 8
         self.body = buffer.read(body_length)
-        self.server.logger.debug(f"Read Body (Length {body_length} bytes): {self.body}")
+        print(f"Read Body (Length {body_length} bytes): {self.body}")
 
     def encode(self, buffer: Buffer):
         if not isinstance(self.flags, int) or not isinstance(self.length_in_bits, int):
             raise TypeError("flags and length_in_bits must be integers")
 
         buffer.write_byte(self.flags)
-        self.server.logger.debug(f"Written Frame Flags: {self.flags}")
+        print(f"Written Frame Flags: {self.flags}")
 
         buffer.write_unsigned_short(self.length_in_bits)
-        self.server.logger.debug(f"Written Length in Bits: {self.length_in_bits}")
+        print(f"Written Length in Bits: {self.length_in_bits}")
 
         reliability_type = (self.flags >> 5) & 0x07
         is_fragmented = (self.flags >> 4) & 0x01
 
         if reliability_type in {2, 3, 4, 6, 7}:
             buffer.write_uint24le(self.reliable_frame_index)
-            self.server.logger.debug(f"Written Reliable Frame Index: {self.reliable_frame_index}")
+            print(f"Written Reliable Frame Index: {self.reliable_frame_index}")
 
         if reliability_type in {1, 4}:
             buffer.write_uint24le(self.sequenced_frame_index)
-            self.server.logger.debug(f"Written Sequenced Frame Index: {self.sequenced_frame_index}")
+            print(f"Written Sequenced Frame Index: {self.sequenced_frame_index}")
 
         if reliability_type in {1, 3, 4, 7}:
             buffer.write_uint24le(self.ordered_frame_index)
             buffer.write_byte(self.order_channel)
-            self.server.logger.debug(f"Written Ordered Frame Index: {self.ordered_frame_index}")
-            self.server.logger.debug(f"Written Order Channel: {self.order_channel}")
+            print(f"Written Ordered Frame Index: {self.ordered_frame_index}")
+            print(f"Written Order Channel: {self.order_channel}")
 
         if is_fragmented:
             buffer.write_int(self.compound_size)
             buffer.write_short(self.compound_id)
             buffer.write_int(self.index)
-            self.server.logger.debug(f"Written Compound Size: {self.compound_size}")
-            self.server.logger.debug(f"Written Compound ID: {self.compound_id}")
-            self.server.logger.debug(f"Written Index: {self.index}")
+            print(f"Written Compound Size: {self.compound_size}")
+            print(f"Written Compound ID: {self.compound_id}")
+            print(f"Written Index: {self.index}")
 
         buffer.write(self.body)
-        self.server.logger.debug(f"Written Body (Length {len(self.body)} bytes): {self.body}")
+        print(f"Written Body (Length {len(self.body)} bytes): {self.body}")
         return buffer.getvalue()
