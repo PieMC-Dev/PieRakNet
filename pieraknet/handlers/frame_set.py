@@ -4,6 +4,7 @@ from pieraknet.buffer import Buffer
 class FrameSetHandler:
     @staticmethod
     def handle(data, server, connection):
+        
         frame_set_packet = FrameSetPacket(server=server)
         frame_set_packet.decode(Buffer(data))
         incoming_sequence_number = frame_set_packet.sequence_number

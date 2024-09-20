@@ -2,8 +2,6 @@ import time
 from pieraknet.buffer import Buffer
 from pieraknet.packets.frame_set import FrameSetPacket
 from pieraknet.packets.online_ping import OnlinePing
-from pieraknet.packets.connection_request import ConnectionRequest
-from pieraknet.packets.connection_request_accepted import ConnectionRequestAccepted
 from pieraknet.protocol_info import ProtocolInfo
 from pieraknet.handlers.connection_request import ConnectionRequestHandler
 from pieraknet.handlers.new_incoming_connection import NewIncomingConnectionHandler
@@ -16,7 +14,6 @@ from pieraknet.handlers.nack import NackHandler
 from pieraknet.handlers.frame_set import FrameSetHandler
 from pieraknet.handlers.disconnect import DisconnectHandler
 from pieraknet.handlers.packet_loss import PacketLossHandler
-from pieraknet.handlers.fragmented_frame import FragmentedFrameHandler
 from pieraknet.handlers.frame import FrameHandler
 
 class Connection:
@@ -94,9 +91,6 @@ class Connection:
         self.server.send(data, self.address)
         # self.recovery_queue[self.server_sequence_number] = FrameSetPacket.encode(data, Buffer)
         # self.server_sequence_number += 1
-
-    def handle_frame_set_packet(self, frame_set_packet):
-        FrameSetPacket.decode(frame_set_packet, self.server, self)
 
     def acknowledge(self):
         # Send ACK packets for the processed sequence numbers
