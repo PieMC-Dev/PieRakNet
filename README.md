@@ -1,6 +1,3 @@
-> [!IMPORTANT]  
-> We need help!, contribute please. RakNet documentation: https://vp817.github.io/RakNetProtocolDoc/, https://wiki.vg/Raknet_Protocol
-
 # PieRakNet 🍰🔗
 
 <p align="center">
