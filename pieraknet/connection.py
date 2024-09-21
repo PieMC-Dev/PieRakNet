@@ -54,29 +54,42 @@ class Connection:
     def handle_packet_loss(self, incoming_sequence_number):
         PacketLossHandler.handle(incoming_sequence_number, self.server, self)
 
-    def handle_frame(self, frame):
-        FrameHandler.handle(frame, self.server, self)
-
+    # Handle connection request (if frame is 0x09)
     def handle_connection_requests(self, frame):
         if frame.body[0] == ProtocolInfo.CONNECTION_REQUEST:
+
             #Body
             ConnectionRequestAcceptedPacket = ConnectionRequestHandler.handle(frame.body, self.server, self)
-            #Create a frame set
-            frameSetPacket = FrameSetPacket().create_frame_set_packet(ConnectionRequestAcceptedPacket, flags=0x60)
 
+            #Create a frame set with answer
+            frameSetPacket = FrameSetPacket().create_frame_set_packet(ConnectionRequestAcceptedPacket, flags=0x64)
+
+            #Encode frame set
             buffer = Buffer()
-            frameSetPacket.encode(buffer)
+            frameSetPacket.encode(connection=self, buffer=buffer)
 
+            #Send frame set
             self.send_data(buffer.getvalue())
+
         elif frame.body[0] == ProtocolInfo.NEW_INCOMING_CONNECTION:
+
             NewIncomingConnectionHandler.handle(frame.body, self.server, self)
 
-    def handle_established_connection(self, frame):
+    def handle_established_connection(self, frame):      
         EstablishedConnectionHandler.handle(frame, self.server, self)
 
     def process_online_ping(self, frame):
-        new_packet_data = OnlinePingHandler.handle(OnlinePing(frame.body), self.server, self)
-        self.server.send(new_packet_data, self.address)
+        self.server.logger.debug(f"Received Online Ping from {self.address}")
+
+        OnlinePongPacket = OnlinePingHandler.handle(OnlinePing(frame.body), self.server, self)
+
+        frameSetPacket = FrameSetPacket().create_frame_set_packet(OnlinePongPacket, flags=0x00)
+
+        buffer = Buffer()
+        frameSetPacket.encode(connection=self, buffer=buffer)
+
+        self.send_data(buffer.getvalue())
+        self.server.logger.info(f"We have just sent an Online Pong to {self.address}")
 
     def process_game_packet(self, frame):
         GamePacketHandler.handle(frame.body, self.server, self)

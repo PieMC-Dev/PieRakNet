@@ -1,5 +1,7 @@
 from pieraknet.packets.frame_set import FrameSetPacket
 from pieraknet.buffer import Buffer
+from pieraknet.handlers.frame import FrameHandler
+from pieraknet.handlers.fragmented_frame import FragmentedFrameHandler
 
 class FrameSetHandler:
     @staticmethod
@@ -22,6 +24,8 @@ class FrameSetHandler:
 
             for frame in frame_set_packet.frames:
                 if frame.flags & 0x01:
-                    connection.handle_fragmented_frame(frame)
+                    server.logger.debug("Handling fragmented frame...")
+                    FragmentedFrameHandler.handle(frame, server, connection)
                 else:
-                    connection.handle_frame(frame)
+                    server.logger.debug("Handling frame...")
+                    FrameHandler.handle(frame, server, connection)

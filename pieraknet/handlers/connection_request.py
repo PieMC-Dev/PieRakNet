@@ -25,8 +25,6 @@ class ConnectionRequestHandler:
         new_packet.request_time = packet.client_timestamp
         new_packet.accepted_time = int(time.time() * 1000)
 
-        new_packet.encode()
-
         server.logger.debug("Sending Packet:")
         server.logger.debug(f"- Packet ID: {new_packet.PACKET_ID}")
         server.logger.debug(f"- Packet Body: {new_packet.getvalue()[1:]}")
@@ -37,4 +35,5 @@ class ConnectionRequestHandler:
         server.logger.debug(f"- Request Time: {new_packet.request_time}")
         server.logger.debug(f"- Accepted Time: {new_packet.accepted_time}")
 
+        new_packet.encode()
         return new_packet.getvalue()

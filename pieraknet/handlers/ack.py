@@ -1,4 +1,5 @@
 from pieraknet.packets.acknowledgement import Ack
+from pieraknet.protocol_info import ProtocolInfo
 
 class AckHandler:
     @staticmethod
@@ -13,3 +14,15 @@ class AckHandler:
 
         for sequence_number in packet.sequence_numbers:
             connection.recovery_queue.pop(sequence_number, None)
+
+    @staticmethod
+    def send_ack(server, connection, sequence_number, order_channel):
+        ack_packet = Ack()
+
+        ack_packet.sequence_numbers = [sequence_number]
+
+        ack_packet.encode()
+
+        server.send(ack_packet, connection.address)
+
+        server.logger.debug(f"Sent ACK for sequence number {sequence_number} on order channel {order_channel}")
