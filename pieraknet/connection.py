@@ -14,7 +14,6 @@ from pieraknet.handlers.nack import NackHandler
 from pieraknet.handlers.frame_set import FrameSetHandler
 from pieraknet.handlers.disconnect import DisconnectHandler
 from pieraknet.handlers.packet_loss import PacketLossHandler
-from pieraknet.handlers.frame import FrameHandler
 
 class Connection:
     def __init__(self, server, address):
