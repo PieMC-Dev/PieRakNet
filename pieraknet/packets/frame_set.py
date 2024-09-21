@@ -44,46 +44,46 @@ class FrameSetPacket:
 
     def decode(self, buffer: Buffer):
         self.packet_id = buffer.read_byte()
-        print(f"Read Packet ID: {self.packet_id}")
+        # print(f"Read Packet ID: {self.packet_id}")
 
         self.sequence_number = buffer.read_uint24le()
-        print(f"Read Sequence Number: {self.sequence_number}")
+        # print(f"Read Sequence Number: {self.sequence_number}")
 
         while not buffer.feos():
             frame = Frame(self.server)
             frame.decode(buffer)
             self.frames.append(frame)
-            print(f"Read Frame: {frame}")
+            # print(f"Read Frame: {frame}")
 
-    def encode(self, buffer: Buffer):
-        buffer.write_byte(self.packet_id) # has to be 0x80
-        print(f"Written Packet ID: {self.packet_id}")
+    def encode(self, connection, buffer: Buffer):
+        # Escribir el ID del paquete
+        buffer.write_byte(self.packet_id)  # Su valor debe ser 0x80
+        # print(f"Written Packet ID: {self.packet_id}")
         
+        # Escribir el número de secuencia
         buffer.write_uint24le(self.sequence_number)
-        print(f"Written Sequence Number: {self.sequence_number}")
+        # print(f"Written Sequence Number: {self.sequence_number}")
         
+        # Codificar cada frame y escribirlo en el buffer
         for frame in self.frames:
-            frame_buffer = Buffer()
-            frame.encode(frame_buffer)
-            buffer.write(frame_buffer.getvalue())
-            print(f"Written Frame: {frame}")
+            frame_buffer = Buffer()  # Crear un buffer separado para cada frame
+            frame.encode(connection, frame_buffer)  # Codificar el frame
+            buffer.write(frame_buffer.getvalue())  # Escribir el frame codificado en el buffer general
+            # print(f"Written Frame: {frame}")
         
+        # Retornar el valor codificado del buffer
         return buffer.getvalue()
 
     def create_frame_set_packet(self, body, flags=0):
+        # print(f"create_frame_set_packet Flags (hex): {hex(flags)}")
+        # print(f"create_frame_set_packet Flags (dec): {flags}")
         # Crear un nuevo frame con el cuerpo provisto
         frame = Frame(self.server)
-        frame.server = self.server
         frame.flags = flags
         frame.length_in_bits = len(body) * 8
-        frame.reliable_frame_index = 0
-        frame.sequenced_frame_index = 0
-        frame.ordered_frame_index = 0
-        frame.order_channel = 0
-        frame.compound_size = 0
-        frame.compound_id = 0
-        frame.index = 0
         frame.body = body
 
+        # Añadir el objeto Frame a la lista de frames
         self.frames.append(frame)
+
         return self

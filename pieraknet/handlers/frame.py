@@ -9,6 +9,7 @@ class FrameHandler:
             server.logger.error("Invalid packet structure")
             return
 
+        # We dont handle established connections again
         if not connection.connected:
             connection.handle_connection_requests(frame)
         else:
