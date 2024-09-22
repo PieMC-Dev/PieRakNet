@@ -55,7 +55,7 @@ class FrameSetPacket:
             self.frames.append(frame)
             # print(f"Read Frame: {frame}")
 
-    def encode(self, connection, buffer: Buffer):
+    def encode(self, buffer: Buffer):
         # Escribir el ID del paquete
         buffer.write_byte(self.packet_id)  # Su valor debe ser 0x80
         # print(f"Written Packet ID: {self.packet_id}")
@@ -67,17 +67,18 @@ class FrameSetPacket:
         # Codificar cada frame y escribirlo en el buffer
         for frame in self.frames:
             frame_buffer = Buffer()  # Crear un buffer separado para cada frame
-            frame.encode(connection, frame_buffer)  # Codificar el frame
+            frame.encode(frame_buffer)  # Codificar el frame
             buffer.write(frame_buffer.getvalue())  # Escribir el frame codificado en el buffer general
             # print(f"Written Frame: {frame}")
-        
+                
         # Retornar el valor codificado del buffer
         return buffer.getvalue()
 
-    def create_frame_set_packet(self, body, flags=0):
+    def create_frame_set_packet(self, body, client_sequence_number, flags=0):
         # print(f"create_frame_set_packet Flags (hex): {hex(flags)}")
         # print(f"create_frame_set_packet Flags (dec): {flags}")
         # Crear un nuevo frame con el cuerpo provisto
+        self.sequence_number = client_sequence_number
         frame = Frame(self.server)
         frame.flags = flags
         frame.length_in_bits = len(body) * 8
@@ -85,5 +86,5 @@ class FrameSetPacket:
 
         # Añadir el objeto Frame a la lista de frames
         self.frames.append(frame)
-
+        
         return self

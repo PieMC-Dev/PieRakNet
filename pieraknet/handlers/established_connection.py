@@ -1,4 +1,5 @@
 from pieraknet.protocol_info import ProtocolInfo
+from pieraknet.handlers.ack import AckHandler
 
 class EstablishedConnectionHandler:
     @staticmethod
@@ -7,7 +8,7 @@ class EstablishedConnectionHandler:
 
         server.logger.debug("Established Connection Packet:")
         server.logger.debug(f"- Packet Type: {packet_type}")
-
+        
         if packet_type == ProtocolInfo.ONLINE_PING:
             connection.process_online_ping(frame)
         elif packet_type == ProtocolInfo.GAME_PACKET:

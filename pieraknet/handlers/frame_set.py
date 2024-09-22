@@ -2,6 +2,7 @@ from pieraknet.packets.frame_set import FrameSetPacket
 from pieraknet.buffer import Buffer
 from pieraknet.handlers.frame import FrameHandler
 from pieraknet.handlers.fragmented_frame import FragmentedFrameHandler
+from pieraknet.handlers.ack import AckHandler
 
 class FrameSetHandler:
     @staticmethod
@@ -18,6 +19,7 @@ class FrameSetHandler:
 
         if incoming_sequence_number not in connection.client_sequence_numbers:
             connection.client_sequence_numbers.append(incoming_sequence_number)
+            AckHandler.send_ack(server=server, connection=connection, sequence_number=incoming_sequence_number)
             connection.ack_queue.append(incoming_sequence_number)
             connection.handle_packet_loss(incoming_sequence_number)
             connection.client_sequence_number = incoming_sequence_number

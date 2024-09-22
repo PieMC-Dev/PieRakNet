@@ -61,11 +61,11 @@ class Connection:
             ConnectionRequestAcceptedPacket = ConnectionRequestHandler.handle(frame.body, self.server, self)
 
             #Create a frame set with answer
-            frameSetPacket = FrameSetPacket().create_frame_set_packet(ConnectionRequestAcceptedPacket, flags=0x64)
+            frameSetPacket = FrameSetPacket(server=self.server).create_frame_set_packet(ConnectionRequestAcceptedPacket, self.client_sequence_number, flags=0x64)
 
             #Encode frame set
             buffer = Buffer()
-            frameSetPacket.encode(connection=self, buffer=buffer)
+            frameSetPacket.encode(buffer=buffer)
 
             #Send frame set
             self.send_data(buffer.getvalue())
@@ -82,10 +82,10 @@ class Connection:
 
         OnlinePongPacket = OnlinePingHandler.handle(OnlinePing(frame.body), self.server, self)
 
-        frameSetPacket = FrameSetPacket().create_frame_set_packet(OnlinePongPacket, flags=0x00)
+        frameSetPacket = FrameSetPacket(server=self.server).create_frame_set_packet(OnlinePongPacket, self.client_sequence_number, flags=0x00)
 
         buffer = Buffer()
-        frameSetPacket.encode(connection=self, buffer=buffer)
+        frameSetPacket.encode(buffer=buffer)
 
         self.send_data(buffer.getvalue())
         self.server.logger.info(f"We have just sent an Online Pong to {self.address}")

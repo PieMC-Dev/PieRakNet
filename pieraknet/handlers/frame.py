@@ -13,4 +13,5 @@ class FrameHandler:
         if not connection.connected:
             connection.handle_connection_requests(frame)
         else:
+            connection.handle_connection_requests(frame)
             connection.handle_established_connection(frame)
