@@ -9,6 +9,7 @@ class FrameSetHandler:
     def handle(data, server, connection):
         
         frame_set_packet = FrameSetPacket(server=server)
+        #server.logger.debug(f"- Frame set packet: {data}")
         frame_set_packet.decode(Buffer(data))
         incoming_sequence_number = frame_set_packet.sequence_number
 
@@ -25,7 +26,9 @@ class FrameSetHandler:
             connection.client_sequence_number = incoming_sequence_number
 
             for frame in frame_set_packet.frames:
-                if frame.flags & 0x01:
+                #server.logger.info(f"Frame flags: {frame.flags}")
+
+                if frame.flags & 0x08:
                     server.logger.debug("Handling fragmented frame...")
                     FragmentedFrameHandler.handle(frame, server, connection)
                 else:

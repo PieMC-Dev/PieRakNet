@@ -7,7 +7,7 @@ class Acknowledgement(Packet):
         super().__init__(data)
         self.sequence_numbers: list[int] = []
 
-    def decode_payload(self) -> None:
+    def decode_payload(self):
         self.sequence_numbers.clear()
         count: int = self.read_short()
         for _ in range(count):
@@ -20,7 +20,7 @@ class Acknowledgement(Packet):
                 for index in range(start_index, end_index + 1):
                     self.sequence_numbers.append(index)
 
-    def encode_payload(self) -> None:
+    def encode_payload(self):
         self.sequence_numbers.sort()
         temp_buffer: Buffer = Buffer()
         count: int = 0
