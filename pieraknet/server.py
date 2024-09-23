@@ -124,7 +124,7 @@ class Server:
                 self.handle_data(data, client)
 
     def handle_data(self, data, client):
-        print(data)
+        # print(data)
         if data[0] in {ProtocolInfo.OFFLINE_PING, ProtocolInfo.OFFLINE_PING_OPEN_CONNECTIONS}:
             packet = OfflinePing(data)
             OfflinePingHandler.handle(packet, self, client)

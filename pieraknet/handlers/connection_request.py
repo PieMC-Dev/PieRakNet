@@ -20,7 +20,7 @@ class ConnectionRequestHandler:
         # Create and encode a Connection Request Accepted packet
         new_packet = ConnectionRequestAccepted()
         new_packet.client_address = connection.address
-        new_packet.system_index = server.protocol_version
+        new_packet.system_index = server.raknet_protocol_version
         new_packet.internal_ids = [('255.255.255.255', 19132)] * 10
         new_packet.request_time = packet.client_timestamp
         new_packet.accepted_time = 0

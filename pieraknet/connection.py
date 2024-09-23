@@ -70,10 +70,11 @@ class Connection:
 
     
     def _process_connection_request(self, frame):
+        #Send frame set
         connection_packet = ConnectionRequestHandler.handle(frame.body, self.server, self)
-        frame_set_packet = FrameSetPacket().create_frame_set_packet(connection_packet, flags=0x64)
+        frame_set_packet = FrameSetPacket().create_frame_set_packet(connection_packet, self.client_sequence_number, flags=0x64)
         buffer = Buffer()
-        frame_set_packet.encode(connection=self, buffer=buffer)
+        frame_set_packet.encode(buffer)
         self.send_data(buffer.getvalue())
 
     def handle_established_connection(self, frame):      
