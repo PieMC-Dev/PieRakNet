@@ -16,7 +16,7 @@ class ConnectionNotFound(Exception):
     pass
 
 class Server:
-    def __init__(self, hostname='0.0.0.0', port=19132, ipv=4, responseData="MCPE;PieRakNet Server;589;1.20.0;2;20;13253860892328930865;Powered by PieMC;Survival;1;19132;19133;", logger=None, logginglevel="DEBUG"):
+    def __init__(self, hostname='0.0.0.0', port=19132, ipv=4, logger=None, logginglevel="DEBUG"):
         if logger is None:
             logger = logging.getLogger("PieRakNet")
             logger.setLevel(getattr(logging, logginglevel.upper()))
@@ -35,9 +35,9 @@ class Server:
         self.player_count = 0
         self.max_player_count = 20
         self.server_id = "13253860892328930865"
-        self.modt = ""
-        self.game_mode = ""
-        self.game_mode_number = 0
+        self.modt = "Powered by PieMC"
+        self.game_mode = "survival"
+        self.game_mode_number = 1
         self.portv6 = 19133
         self.protocol_version = 11
         self.guid = random.randint(0, sys.maxsize - 1)
@@ -64,6 +64,9 @@ class Server:
     def responseDataUpdater(self):
         player_count = len(self.connections)
         responseData = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};{player_count};{self.max_player_count};{self.server_id};{self.modt};{self.game_mode};{self.game_mode_number};{self.portv6};{self.port}"
+        for connection in self.connections:
+            print(connection)
+        print(responseData)
         return responseData
 
     def get_connection(self, address):
@@ -78,8 +81,8 @@ class Server:
         self.logger.debug(f"Added connection: {connection} for address {connection.address}")
 
     def remove_connection(self, connection):
-        self.responseDataUpdater()
         self.connections.remove(connection)
+        self.responseDataUpdater()
         self.logger.debug(f"Removed connection: {connection} for address {connection.address}")
 
     def get_all_connections(self):
