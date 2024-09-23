@@ -16,7 +16,22 @@ class ConnectionNotFound(Exception):
     pass
 
 class Server:
-    def __init__(self, hostname='0.0.0.0', port=19132, ipv=4, logger=None, logginglevel="DEBUG"):
+    def __init__(self, 
+                 hostname='0.0.0.0', 
+                 port=19132, 
+                 ipv=4, 
+                 logger=None, 
+                 logginglevel="DEBUG", 
+                 game="MCPE", 
+                 name="PieRakNet", 
+                 game_protocol_version=589, 
+                 version_name="1.20.0", 
+                 max_player_count=20, 
+                 modt="Powered by PieRakNet", 
+                 game_mode="survival", 
+                 game_mode_number=1, 
+                 portv6=19133
+                 ):
         if logger is None:
             logger = logging.getLogger("PieRakNet")
             logger.setLevel(getattr(logging, logginglevel.upper()))
@@ -28,18 +43,17 @@ class Server:
         self.hostname = hostname
         self.port = port
         self.ipv = ipv
-        self.game = "MCPE"
-        self.name = "PieRakNet"
-        self.game_protocol_version = 589
-        self.version_name = "1.20.0"
+        self.game = game
+        self.name = name
+        self.game_protocol_version = game_protocol_version
+        self.version_name = version_name
         self.player_count = 0
-        self.max_player_count = 20
-        self.server_id = "13253860892328930865"
-        self.modt = "Powered by PieMC"
-        self.game_mode = "survival"
-        self.game_mode_number = 1
-        self.portv6 = 19133
-        self.protocol_version = 11
+        self.max_player_count = max_player_count
+        self.server_id = "13253860892328930866"
+        self.modt = modt
+        self.game_mode = game_mode
+        self.game_mode_number = game_mode_number
+        self.portv6 = portv6
         self.guid = random.randint(0, sys.maxsize - 1)
         self.connections = []
         self.responseData = self.responseDataUpdater()
@@ -63,11 +77,11 @@ class Server:
 
     def responseDataUpdater(self):
         player_count = len(self.connections)
-        responseData = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};{player_count};{self.max_player_count};{self.server_id};{self.modt};{self.game_mode};{self.game_mode_number};{self.portv6};{self.port}"
+        self.responseData = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};{player_count};{self.max_player_count};{self.server_id};{self.modt};{self.game_mode};{self.game_mode_number};{self.portv6};{self.port}"
         for connection in self.connections:
             print(connection)
-        print(responseData)
-        return responseData
+        print(self.responseData)
+        return self.responseData
 
     def get_connection(self, address):
         for connection in self.connections:
