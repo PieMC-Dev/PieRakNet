@@ -16,7 +16,7 @@ class ConnectionNotFound(Exception):
     pass
 
 class Server:
-    def __init__(self, hostname='0.0.0.0', port=19132, ipv=4, responseData="MCPE;PieRakNet Server;589;1.20.0;2;20;13253860892328930865;Powered by PieMC;Survival;1;19132;19133;", logger=None, logginglevel="DEBUG"):
+    def __init__(self, hostname='0.0.0.0', port=19132, ipv=4, logger=None, logginglevel="DEBUG"):
         if logger is None:
             logger = logging.getLogger("PieRakNet")
             logger.setLevel(getattr(logging, logginglevel.upper()))
@@ -28,10 +28,21 @@ class Server:
         self.hostname = hostname
         self.port = port
         self.ipv = ipv
-        self.responseData = responseData
+        self.game = "MCPE"
+        self.name = "PieRakNet"
+        self.game_protocol_version = 589
+        self.version_name = "1.20.0"
+        self.player_count = 0
+        self.max_player_count = 20
+        self.server_id = "13253860892328930865"
+        self.modt = "Powered by PieMC"
+        self.game_mode = "survival"
+        self.game_mode_number = 1
+        self.portv6 = 19133
         self.protocol_version = 11
         self.guid = random.randint(0, sys.maxsize - 1)
         self.connections = []
+        self.responseData = self.responseDataUpdater()
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.SOL_UDP)
         self.start_time = time.time()
         self.maxsize = 4096
@@ -50,6 +61,14 @@ class Server:
         except:
             self.logger.error(f"Failed to send data to {address}: {data}")
 
+    def responseDataUpdater(self):
+        player_count = len(self.connections)
+        responseData = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};{player_count};{self.max_player_count};{self.server_id};{self.modt};{self.game_mode};{self.game_mode_number};{self.portv6};{self.port}"
+        for connection in self.connections:
+            print(connection)
+        print(responseData)
+        return responseData
+
     def get_connection(self, address):
         for connection in self.connections:
             if connection.address == address:
@@ -58,10 +77,12 @@ class Server:
 
     def add_connection(self, connection):
         self.connections.append(connection)
+        self.responseDataUpdater()
         self.logger.debug(f"Added connection: {connection} for address {connection.address}")
 
     def remove_connection(self, connection):
         self.connections.remove(connection)
+        self.responseDataUpdater()
         self.logger.debug(f"Removed connection: {connection} for address {connection.address}")
 
     def get_all_connections(self):
