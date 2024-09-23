@@ -12,10 +12,10 @@ class OpenConnectionRequest1Handler:
         server.logger.debug(f"- Packet Body: {packet.getvalue()[1:]}")
         server.logger.debug(f"- Packet Name: Open Connection Request 1")
         server.logger.debug(f"- MAGIC: {packet.magic}")
-        server.logger.debug(f"- Protocol Version: {packet.protocol_version}")
+        server.logger.debug(f"- Protocol Version: {packet.raknet_protocol_version}")
         server.logger.debug(f"- MTU size: {packet.mtu_size}")
 
-        if packet.protocol_version == server.protocol_version:
+        if packet.raknet_protocol_version == server.raknet_protocol_version:
             new_packet = OpenConnectionReply1()
             new_packet.magic = packet.magic
             new_packet.server_guid = server.guid
@@ -23,7 +23,7 @@ class OpenConnectionRequest1Handler:
             new_packet.mtu_size = packet.mtu_size
         else:
             new_packet = IncompatibleProtocol()
-            new_packet.protocol_version = server.protocol_version
+            new_packet.raknet_protocol_version = server.raknet_protocol_version
             new_packet.magic = packet.magic  # TODO: server.magic
             new_packet.server_guid = server.guid
 

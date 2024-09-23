@@ -54,6 +54,7 @@ class Server:
         self.game_mode = game_mode
         self.game_mode_number = game_mode_number
         self.portv6 = portv6
+        self.raknet_protocol_version = 11
         self.guid = random.randint(0, sys.maxsize - 1)
         self.connections = []
         self.responseData = self.responseDataUpdater()
@@ -78,9 +79,9 @@ class Server:
     def responseDataUpdater(self):
         player_count = len(self.connections)
         self.responseData = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};{player_count};{self.max_player_count};{self.server_id};{self.modt};{self.game_mode};{self.game_mode_number};{self.portv6};{self.port}"
-        for connection in self.connections:
-            print(connection)
-        print(self.responseData)
+        # for connection in self.connections:
+        #     print(connection)
+        # print(self.responseData)
         return self.responseData
 
     def get_connection(self, address):
@@ -90,14 +91,20 @@ class Server:
         raise ConnectionNotFound()
 
     def add_connection(self, connection):
-        self.connections.append(connection)
-        self.responseDataUpdater()
-        self.logger.debug(f"Added connection: {connection} for address {connection.address}")
+        if connection not in self.connections:
+            self.connections.append(connection)
+            self.responseDataUpdater()
+            self.logger.debug(f"Added connection: {connection} for address {connection.address}")
+        else:
+            self.logger.warning(f"Connection already exists: {connection.address}")
 
     def remove_connection(self, connection):
-        self.connections.remove(connection)
-        self.responseDataUpdater()
-        self.logger.debug(f"Removed connection: {connection} for address {connection.address}")
+        if connection in self.connections:
+            self.connections.remove(connection)
+            self.responseDataUpdater()
+            self.logger.debug(f"Removed connection: {connection} for address {connection.address}")
+        else:
+            self.logger.warning(f"Connection not found: {connection.address}")
 
     def get_all_connections(self):
         return self.connections
@@ -105,29 +112,34 @@ class Server:
     def start(self):
         self.running = True
         self.socket.bind((self.hostname, self.port))
-        self.logger.info(f"Server started!")
+        self.logger.info(f"Server started on {self.hostname}:{self.port}!")
         while self.running:
             time.sleep(1 / 20)
             try:
                 data, client = self.socket.recvfrom(self.maxsize)
-            except OSError:
-                pass
-            else:
-                if data[0] in {ProtocolInfo.OFFLINE_PING, ProtocolInfo.OFFLINE_PING_OPEN_CONNECTIONS}:
-                    packet = OfflinePing(data)
-                    OfflinePingHandler.handle(packet, self, client)
-                elif data[0] == ProtocolInfo.OPEN_CONNECTION_REQUEST_1:
-                    packet = OpenConnectionRequest1(data)
-                    OpenConnectionRequest1Handler.handle(packet, self, client)
-                elif data[0] == ProtocolInfo.OPEN_CONNECTION_REQUEST_2:
-                    packet = OpenConnectionRequest2(data)
-                    OpenConnectionRequest2Handler.handle(packet, self, client)
-                elif ProtocolInfo.FRAME_SET_0 <= data[0] <= ProtocolInfo.FRAME_SET_F:
-                    try:
-                        connection = self.get_connection(client)
-                        connection.handle(data)
-                    except ConnectionNotFound:
-                        self.logger.error(f"Connection not found for address {client}")
+            except OSError as e:
+                self.logger.warning(f"OS error while receiving data: {e}")
+                continue
+            if data:
+                self.handle_data(data, client)
+
+    def handle_data(self, data, client):
+        print(data)
+        if data[0] in {ProtocolInfo.OFFLINE_PING, ProtocolInfo.OFFLINE_PING_OPEN_CONNECTIONS}:
+            packet = OfflinePing(data)
+            OfflinePingHandler.handle(packet, self, client)
+        elif data[0] == ProtocolInfo.OPEN_CONNECTION_REQUEST_1:
+            packet = OpenConnectionRequest1(data)
+            OpenConnectionRequest1Handler.handle(packet, self, client)
+        elif data[0] == ProtocolInfo.OPEN_CONNECTION_REQUEST_2:
+            packet = OpenConnectionRequest2(data)
+            OpenConnectionRequest2Handler.handle(packet, self, client)
+        elif ProtocolInfo.FRAME_SET_0 <= data[0] <= ProtocolInfo.FRAME_SET_F:
+            try:
+                connection = self.get_connection(client)
+                connection.handle(data)
+            except ConnectionNotFound:
+                self.logger.error(f"Connection not found for address {client}")
 
     def stop(self):
         self.running = False

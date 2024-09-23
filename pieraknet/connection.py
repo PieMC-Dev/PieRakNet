@@ -33,6 +33,9 @@ class Connection:
     def disconnect(self):
         self.server.logger.debug(f"Disconnecting {self.address}")
         self.connected = False
+        self.ack_queue.clear()
+        self.nack_queue.clear()
+        self.recovery_queue.clear()
         self.server.remove_connection(self)
 
     def handle(self, data):
@@ -51,28 +54,27 @@ class Connection:
             self.server.logger.error(f"Unknown packet ID: {packet_id}")
 
     def handle_packet_loss(self, incoming_sequence_number):
+        if incoming_sequence_number in self.recovery_queue:
+            self.logger.warning(f"Packet loss detected for sequence number {incoming_sequence_number}. Retransmitting...")
+            lost_packet = self.recovery_queue[incoming_sequence_number]
+            self.send_data(lost_packet)
         PacketLossHandler.handle(incoming_sequence_number, self.server, self)
 
     # Handle connection request (if frame is 0x09)
     def handle_connection_requests(self, frame):
-        if frame.body[0] == ProtocolInfo.CONNECTION_REQUEST:
-
-            #Body
-            ConnectionRequestAcceptedPacket = ConnectionRequestHandler.handle(frame.body, self.server, self)
-
-            #Create a frame set with answer
-            frameSetPacket = FrameSetPacket().create_frame_set_packet(ConnectionRequestAcceptedPacket, flags=0x64)
-
-            #Encode frame set
-            buffer = Buffer()
-            frameSetPacket.encode(connection=self, buffer=buffer)
-
-            #Send frame set
-            self.send_data(buffer.getvalue())
-
-        elif frame.body[0] == ProtocolInfo.NEW_INCOMING_CONNECTION:
-
+        packet_type = frame.body[0]
+        if packet_type == ProtocolInfo.CONNECTION_REQUEST:
+            self._process_connection_request(frame)
+        elif packet_type == ProtocolInfo.NEW_INCOMING_CONNECTION:
             NewIncomingConnectionHandler.handle(frame.body, self.server, self)
+
+    
+    def _process_connection_request(self, frame):
+        connection_packet = ConnectionRequestHandler.handle(frame.body, self.server, self)
+        frame_set_packet = FrameSetPacket().create_frame_set_packet(connection_packet, flags=0x64)
+        buffer = Buffer()
+        frame_set_packet.encode(connection=self, buffer=buffer)
+        self.send_data(buffer.getvalue())
 
     def handle_established_connection(self, frame):      
         EstablishedConnectionHandler.handle(frame, self.server, self)
@@ -101,8 +103,8 @@ class Connection:
 
     def send_data(self, data):
         self.server.send(data, self.address)
-        # self.recovery_queue[self.server_sequence_number] = FrameSetPacket.encode(data, Buffer)
-        # self.server_sequence_number += 1
+        self.recovery_queue[self.server_sequence_number] = (data, time.time())  # Track sent data with timestamp
+        self.server_sequence_number += 1
 
     def acknowledge(self):
         # Send ACK packets for the processed sequence numbers
@@ -119,6 +121,17 @@ class Connection:
             self.nack_queue.clear()
 
     def update(self):
-        # Update connection logic (e.g., handle timeouts, resend packets, etc.)
         self.acknowledge()
         self.negative_acknowledge()
+        
+        # Check for packet timeouts
+        current_time = time.time()
+        to_resend = []
+        for seq_num, (packet, timestamp) in self.recovery_queue.items():
+            if current_time - timestamp > self.server.timeout:
+                to_resend.append((seq_num, packet))
+                self.logger.debug(f"Resending packet with sequence number {seq_num}")
+        
+        for seq_num, packet in to_resend:
+            self.send_data(packet)
+            self.recovery_queue[seq_num] = (packet, current_time)  # Reset the timestamp

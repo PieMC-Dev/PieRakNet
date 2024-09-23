@@ -6,11 +6,11 @@ class IncompatibleProtocol(Packet):
 
     def __init__(self, data: bytes = b''):
         super().__init__(data)
-        self.protocol_version: int = None
+        self.raknet_protocol_version: int = None
         self.magic: bytes = None
         self.server_guid: int = None
 
     def encode_payload(self):
-        self.write_byte(self.protocol_version)
+        self.write_byte(self.raknet_protocol_version)
         self.write_magic(self.magic)
         self.write_long(self.server_guid)
