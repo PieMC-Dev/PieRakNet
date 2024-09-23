@@ -4,7 +4,7 @@ import time
 
 class OnlinePingHandler:
     @staticmethod
-    def handle(packet: OnlinePing, server, connection):
+    def handle(packet: OnlinePing, server):
         packet.decode()
 
         server.logger.debug("New Packet:")

@@ -20,10 +20,10 @@ class ConnectionRequestHandler:
         # Create and encode a Connection Request Accepted packet
         new_packet = ConnectionRequestAccepted()
         new_packet.client_address = connection.address
-        new_packet.system_index = 0
+        new_packet.system_index = server.protocol_version
         new_packet.internal_ids = [('255.255.255.255', 19132)] * 10
         new_packet.request_time = packet.client_timestamp
-        new_packet.accepted_time = int(time.time() * 1000)
+        new_packet.accepted_time = 0
 
         server.logger.debug("Sending Packet:")
         server.logger.debug(f"- Packet ID: {new_packet.PACKET_ID}")

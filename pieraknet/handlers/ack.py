@@ -16,13 +16,13 @@ class AckHandler:
             connection.recovery_queue.pop(sequence_number, None)
 
     @staticmethod
-    def send_ack(server, connection, sequence_number, order_channel):
+    def send_ack(server, connection, sequence_number):
         ack_packet = Ack()
 
         ack_packet.sequence_numbers = [sequence_number]
 
         ack_packet.encode()
 
-        server.send(ack_packet, connection.address)
+        server.send(ack_packet.getvalue(), connection.address)
 
-        server.logger.debug(f"Sent ACK for sequence number {sequence_number} on order channel {order_channel}")
+        server.logger.debug(f"Sent ACK for sequence number {sequence_number}")

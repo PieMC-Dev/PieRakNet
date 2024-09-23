@@ -4,7 +4,7 @@ class NewIncomingConnectionHandler:
     @staticmethod
     def handle(frame_body, server, connection):
         try:
-            packet = NewIncomingConnection(frame_body)
+            packet = NewIncomingConnection(server, frame_body)
             packet.decode()
 
             server.logger.debug("New Packet:")

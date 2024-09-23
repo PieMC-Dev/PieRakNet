@@ -84,7 +84,7 @@ class Frame:
         self.body = buffer.read(body_length)
         # print(f"Read Body (Length {body_length} bytes): {self.body}")
 
-    def encode(self, connection, buffer: Buffer):
+    def encode(self, buffer: Buffer):
         if not isinstance(self.flags, int) or not isinstance(self.length_in_bits, int):
             raise TypeError("flags and length_in_bits must be integers")
 
@@ -115,11 +115,6 @@ class Frame:
             buffer.write_byte(self.order_channel)
             # print(f"Written Ordered Frame Index: {self.ordered_frame_index}")
             # print(f"Written Order Channel: {self.order_channel}")
-        
-        if reliability_type in {5, 6, 7}:
-            # Send acknowledgement
-            # print(f"Sending ACK for frame {self.ordered_frame_index} on order channel {self.order_channel}")
-            AckHandler.send_ack(self.server, connection, self.ordered_frame_index, self.order_channel)
 
         if is_fragmented:
             buffer.write_int(self.compound_size)
