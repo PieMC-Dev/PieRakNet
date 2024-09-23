@@ -74,6 +74,7 @@ class Connection:
         buffer = Buffer()
         frame_set_packet.encode(buffer)
         self.send_data(buffer.getvalue())
+        self.connected = True
 
     def handle_established_connection(self, frame):      
         EstablishedConnectionHandler.handle(frame, self.server, self)
