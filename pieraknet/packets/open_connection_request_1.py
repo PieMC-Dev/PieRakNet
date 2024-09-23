@@ -7,12 +7,12 @@ class OpenConnectionRequest1(Packet):
     def __init__(self, data: bytes = b''):
         super().__init__(data)
         self.magic: bytes = None
-        self.protocol_version: int = None
+        self.raknet_protocol_version: int = None
         self.mtu_size: int = None
 
     def decode_payload(self):
         self.magic = self.read_magic()
-        self.protocol_version = int(self.read_byte())
+        self.raknet_protocol_version = int(self.read_byte())
         # Asegurarse de que el valor se pueda convertir a entero correctamente
         try:
             self.mtu_size = len(self.read()) + 46
