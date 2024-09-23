@@ -24,7 +24,7 @@ class Server:
                  port=19132, 
                  ipv=4, 
                  logger=None, 
-                 logginglevel="DEBUG", 
+                 logginglevel="INFO", 
                  game="MCPE", 
                  name="PieRakNet", 
                  game_protocol_version=589, 
