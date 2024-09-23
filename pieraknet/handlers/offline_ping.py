@@ -18,7 +18,7 @@ class OfflinePingHandler:
         new_packet.client_timestamp = packet.client_timestamp
         new_packet.server_guid = server.guid
         new_packet.magic = packet.magic  # TODO: server.magic
-        new_packet.server_responseData = server.responseData
+        new_packet.server_responseData = server.response_data
         new_packet.encode()
 
         server.send(new_packet.getvalue(), address)

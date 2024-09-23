@@ -1,4 +1,5 @@
 import time
+import collections
 from pieraknet.buffer import Buffer
 from pieraknet.packets.frame_set import FrameSetPacket
 from pieraknet.packets.online_ping import OnlinePing
@@ -15,6 +16,7 @@ from pieraknet.handlers.frame_set import FrameSetHandler
 from pieraknet.handlers.disconnect import DisconnectHandler
 from pieraknet.handlers.packet_loss import PacketLossHandler
 
+
 class Connection:
     def __init__(self, server, address):
         self.server = server
@@ -22,10 +24,10 @@ class Connection:
         self.connected = False
         self.client_sequence_number = 0
         self.server_sequence_number = 0
-        self.ack_queue = []
-        self.nack_queue = []
-        self.recovery_queue = {}
-        self.client_sequence_numbers = []
+        self.ack_queue = collections.deque()  # Optimized for append/pop operations
+        self.nack_queue = collections.deque()
+        self.recovery_queue = collections.OrderedDict()  # Keep recovery packets in order
+        self.client_sequence_numbers = set()  # Efficient lookups for incoming sequence numbers
         self.fragmented_packets = {}
         self.logger = server.logger
         self.logger.debug(f"Created connection: {self} for address {self.address}")
@@ -39,7 +41,6 @@ class Connection:
         self.server.remove_connection(self)
 
     def handle(self, data):
-        # Determine the packet type and delegate to the appropriate handler
         packet_id = data[0]
 
         if packet_id == ProtocolInfo.ACK:
@@ -60,7 +61,6 @@ class Connection:
             self.send_data(lost_packet)
         PacketLossHandler.handle(incoming_sequence_number, self.server, self)
 
-    # Handle connection request (if frame is 0x09)
     def handle_connection_requests(self, frame):
         packet_type = frame.body[0]
         if packet_type == ProtocolInfo.CONNECTION_REQUEST:
@@ -68,9 +68,7 @@ class Connection:
         elif packet_type == ProtocolInfo.NEW_INCOMING_CONNECTION:
             NewIncomingConnectionHandler.handle(frame.body, self.server, self)
 
-    
     def _process_connection_request(self, frame):
-        #Send frame set
         connection_packet = ConnectionRequestHandler.handle(frame.body, self.server, self)
         frame_set_packet = FrameSetPacket().create_frame_set_packet(connection_packet, self.client_sequence_number, flags=0x64)
         buffer = Buffer()
@@ -110,14 +108,12 @@ class Connection:
         self.server_sequence_number += 1
 
     def acknowledge(self):
-        # Send ACK packets for the processed sequence numbers
         if self.ack_queue:
             ack_packet = AckHandler.create_ack_packet(self.ack_queue)
             self.send_data(ack_packet)
             self.ack_queue.clear()
 
     def negative_acknowledge(self):
-        # Send NACK packets for the lost sequence numbers
         if self.nack_queue:
             nack_packet = NackHandler.create_nack_packet(self.nack_queue)
             self.send_data(nack_packet)
@@ -127,14 +123,14 @@ class Connection:
         self.acknowledge()
         self.negative_acknowledge()
         
-        # Check for packet timeouts
+        # Efficiently process packet retransmission
         current_time = time.time()
         to_resend = []
-        for seq_num, (packet, timestamp) in self.recovery_queue.items():
+        for seq_num, (packet, timestamp) in list(self.recovery_queue.items()):  # List to avoid runtime size changes
             if current_time - timestamp > self.server.timeout:
                 to_resend.append((seq_num, packet))
                 self.logger.debug(f"Resending packet with sequence number {seq_num}")
         
         for seq_num, packet in to_resend:
             self.send_data(packet)
-            self.recovery_queue[seq_num] = (packet, current_time)  # Reset the timestamp
+            self.recovery_queue[seq_num] = (packet, current_time)  # Update the timestamp
