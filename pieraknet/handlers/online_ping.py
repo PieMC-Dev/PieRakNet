@@ -23,16 +23,14 @@ class OnlinePingHandler:
 
     def process_online_ping(frame, server, connection):
 
-        OnlinePingPacket = OnlinePing(frame.body)
-        OnlinePongPacket = OnlinePingHandler.handle(OnlinePing(frame.body), server)
+        OnlinePingPacket = OnlinePing(frame['body'])
+        OnlinePongPacket = OnlinePingHandler.handle(OnlinePing(frame['body']), server)
 
 
         OnlinePongPacket = OnlinePingHandler.handle(OnlinePingPacket, server)
 
-        frameSetPacket = FrameSetPacket(server).create_frame_set_packet(OnlinePongPacket, connection.client_sequence_number, flags=0x00)
+        frame_set_packet = FrameSetPacket(server)
+        frame_set_packet.create_frame(OnlinePongPacket, flags=0x64)
 
-        buffer = Buffer()
-        frameSetPacket.encode(buffer=buffer)
-
-        connection.send_data(buffer.getvalue())
-        server.logger.debug(f"We have just sent an Online Pong to {connection.address}")
+        # Codificar y enviar directamente sin usar Buffer
+        connection.send_data(frame_set_packet.encode())

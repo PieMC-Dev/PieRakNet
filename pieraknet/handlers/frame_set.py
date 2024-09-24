@@ -2,14 +2,13 @@ from pieraknet.packets.frame_set import FrameSetPacket
 from pieraknet.buffer import Buffer
 from pieraknet.handlers.frame import FrameHandler
 from pieraknet.handlers.fragmented_frame import FragmentedFrameHandler
-from pieraknet.handlers.acknowledgement import AckHandler, NackHandler
-from pieraknet.packets.frame import Frame
+from pieraknet.handlers.acknowledgement import AckHandler
 
 class FrameSetHandler:
     @staticmethod
     def handle(data: bytes, server, connection):
-        frame_set_packet = FrameSetPacket(server=server)
-        frame_set_packet.decode(Buffer(data))
+        frame_set_packet = FrameSetPacket(server)
+        frame_set_packet.decode(data)
         incoming_sequence_number = frame_set_packet.sequence_number
 
         server.logger.debug("New Packet:")
@@ -33,8 +32,8 @@ class FrameSetHandler:
                 FrameSetHandler.process_frame(frame, server, connection)
 
     @staticmethod
-    def process_frame(frame: Frame, server, connection):
-        if frame.flags & 0x08:  # Check if it's a fragmented frame
+    def process_frame(frame, server, connection):
+        if frame['flags'] & 0x08:  # Check if it's a fragmented frame
             server.logger.debug("Handling fragmented frame...")
             FragmentedFrameHandler.handle(frame, server, connection)
         else:

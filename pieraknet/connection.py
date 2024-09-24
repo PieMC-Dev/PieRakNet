@@ -76,16 +76,18 @@ class Connection:
             PacketLossHandler.handle(incoming_sequence_number, self.server, self)
 
     def handle_connection_requests(self, frame):
-        packet_type = frame.body[0]
+        packet_type = frame['body'][0]
         if packet_type == ProtocolInfo.CONNECTION_REQUEST:
-            connection_packet = ConnectionRequestHandler.handle(frame.body, self.server, self)
-            frame_set_packet = FrameSetPacket().create_frame_set_packet(connection_packet, self.client_sequence_number, flags=0x64)
-            buffer = Buffer()
-            frame_set_packet.encode(buffer)
-            self.send_data(buffer.getvalue())
+            connection_packet = ConnectionRequestHandler.handle(frame['body'], self.server, self)
+            # Crear un FrameSetPacket
+            frame_set_packet = FrameSetPacket(self.server)
+            frame_set_packet.create_frame(connection_packet, flags=0x64)
+
+            # Codificar y enviar directamente sin usar Buffer
+            self.send_data(frame_set_packet.encode())
             self.connected = True
         elif packet_type == ProtocolInfo.NEW_INCOMING_CONNECTION:
-            NewIncomingConnectionHandler.handle(frame.body, self.server, self)
+            NewIncomingConnectionHandler.handle(frame['body'], self.server, self)
 
     def send_data(self, data):
         self.server.send(data, self.address)
