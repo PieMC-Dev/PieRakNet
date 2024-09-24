@@ -18,11 +18,8 @@ class AckHandler:
     @staticmethod
     def send_ack(server, connection, sequence_number):
         ack_packet = Ack()
-
         ack_packet.sequence_numbers = [sequence_number]
-
         ack_packet.encode()
-
+        
         server.send(ack_packet.getvalue(), connection.address)
-
         server.logger.debug(f"Sent ACK for sequence number {sequence_number}")

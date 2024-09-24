@@ -110,13 +110,13 @@ class Connection:
 
     def acknowledge(self):
         if self.ack_queue:
-            ack_packet = AckHandler.create_ack_packet(self.ack_queue)
+            ack_packet = AckHandler.create_ack_packet(list(self.ack_queue))
             self.send_data(ack_packet)
             self.ack_queue.clear()
 
     def negative_acknowledge(self):
         if self.nack_queue:
-            nack_packet = NackHandler.create_nack_packet(self.nack_queue)
+            nack_packet = NackHandler.create_nack_packet(list(self.nack_queue))
             self.send_data(nack_packet)
             self.nack_queue.clear()
 
@@ -124,14 +124,14 @@ class Connection:
         self.acknowledge()
         self.negative_acknowledge()
         
-        # Efficiently process packet retransmission
         current_time = time.time()
         to_resend = []
-        for seq_num, (packet, timestamp) in list(self.recovery_queue.items()):  # List to avoid runtime size changes
+        
+        for seq_num, (packet, timestamp) in list(self.recovery_queue.items()):
             if current_time - timestamp > self.server.timeout:
                 to_resend.append((seq_num, packet))
                 self.logger.debug(f"Resending packet with sequence number {seq_num}")
         
         for seq_num, packet in to_resend:
             self.send_data(packet)
-            self.recovery_queue[seq_num] = (packet, current_time)  # Update the timestamp
+            self.recovery_queue[seq_num] = (packet, current_time)

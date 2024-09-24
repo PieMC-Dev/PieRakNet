@@ -7,9 +7,7 @@ from pieraknet.handlers.ack import AckHandler
 class FrameSetHandler:
     @staticmethod
     def handle(data, server, connection):
-        
         frame_set_packet = FrameSetPacket(server=server)
-        #server.logger.debug(f"- Frame set packet: {data}")
         frame_set_packet.decode(Buffer(data))
         incoming_sequence_number = frame_set_packet.sequence_number
 
@@ -18,17 +16,20 @@ class FrameSetHandler:
         server.logger.debug(f"- Packet Name: Frame Set")
         server.logger.debug(f"- Incoming Sequence Number: {incoming_sequence_number}")
 
+        # Solo procesar si el número de secuencia no ha sido procesado
         if incoming_sequence_number not in connection.client_sequence_numbers:
             connection.client_sequence_numbers.add(incoming_sequence_number)
+
+            # Enviar ACK para el número de secuencia recibido
             AckHandler.send_ack(server=server, connection=connection, sequence_number=incoming_sequence_number)
             connection.ack_queue.append(incoming_sequence_number)
-            connection.handle_packet_loss(incoming_sequence_number)
+
+            # Actualizar el número de secuencia del cliente
             connection.client_sequence_number = incoming_sequence_number
 
+            # Procesar cada frame en el paquete
             for frame in frame_set_packet.frames:
-                #server.logger.info(f"Frame flags: {frame.flags}")
-
-                if frame.flags & 0x08:
+                if frame.flags & 0x08:  # Verificar si es un frame fragmentado
                     server.logger.debug("Handling fragmented frame...")
                     FragmentedFrameHandler.handle(frame, server, connection)
                 else:

@@ -82,9 +82,10 @@ class Server:
 
     def update_response_data(self):
         player_count = len(self.connections)
-        self.response_data = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};" \
+        response_data = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};" \
                f"{player_count};{self.max_player_count};{self.server_id};{self.modt};" \
                f"{self.game_mode};{self.game_mode_number};{self.portv6};{self.port}"
+        return response_data
 
     def get_connection(self, address):
         for connection in self.connections:
