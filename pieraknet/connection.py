@@ -99,24 +99,6 @@ class Connection:
     def handle_established_connection(self, frame):      
         EstablishedConnectionHandler.handle(frame, self.server, self)
 
-    def process_online_ping(self, frame):
-        self.server.logger.debug(f"Received Online Ping from {self.address}")
-
-        OnlinePingPacket = OnlinePing(frame.body)
-
-        OnlinePongPacket = OnlinePingHandler.handle(OnlinePingPacket, self.server)
-
-        frameSetPacket = FrameSetPacket(server=self.server).create_frame_set_packet(OnlinePongPacket, self.client_sequence_number, flags=0x00)
-
-        buffer = Buffer()
-        frameSetPacket.encode(buffer=buffer)
-
-        self.send_data(buffer.getvalue())
-        self.server.logger.debug(f"We have just sent an Online Pong to {self.address}")
-
-    def process_game_packet(self, frame):
-        GamePacketHandler.handle(frame.body, self.server, self)
-
     def handle_disconnect(self, frame_body):
         DisconnectHandler.handle(frame_body, self.server, self)
 

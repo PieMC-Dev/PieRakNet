@@ -1,5 +1,7 @@
 from pieraknet.packets.online_ping import OnlinePing
 from pieraknet.packets.online_pong import OnlinePong
+from pieraknet.packets.frame_set import FrameSetPacket
+from pieraknet.buffer import Buffer
 import time
 
 class OnlinePingHandler:
@@ -18,3 +20,19 @@ class OnlinePingHandler:
 
         new_packet.encode()
         return new_packet.getvalue()
+
+    def process_online_ping(frame, server, connection):
+
+        OnlinePingPacket = OnlinePing(frame.body)
+        OnlinePongPacket = OnlinePingHandler.handle(OnlinePing(frame.body), server)
+
+
+        OnlinePongPacket = OnlinePingHandler.handle(OnlinePingPacket, server)
+
+        frameSetPacket = FrameSetPacket(server).create_frame_set_packet(OnlinePongPacket, connection.client_sequence_number, flags=0x00)
+
+        buffer = Buffer()
+        frameSetPacket.encode(buffer=buffer)
+
+        connection.send_data(buffer.getvalue())
+        server.logger.debug(f"We have just sent an Online Pong to {connection.address}")
