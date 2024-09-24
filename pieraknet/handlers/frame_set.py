@@ -19,7 +19,7 @@ class FrameSetHandler:
         server.logger.debug(f"- Incoming Sequence Number: {incoming_sequence_number}")
 
         if incoming_sequence_number not in connection.client_sequence_numbers:
-            connection.client_sequence_numbers.append(incoming_sequence_number)
+            connection.client_sequence_numbers.add(incoming_sequence_number)
             AckHandler.send_ack(server=server, connection=connection, sequence_number=incoming_sequence_number)
             connection.ack_queue.append(incoming_sequence_number)
             connection.handle_packet_loss(incoming_sequence_number)

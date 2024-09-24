@@ -1,3 +1,5 @@
+from pieraknet.protocol_info import ProtocolInfo
+from pieraknet.handlers.disconnect import DisconnectHandler
 class FrameHandler:
     @staticmethod
     def handle(frame, server, connection):
@@ -15,3 +17,5 @@ class FrameHandler:
         else:
             connection.handle_connection_requests(frame)
             connection.handle_established_connection(frame)
+        if frame.body[0] == ProtocolInfo.DISCONNECT:
+            DisconnectHandler.handle(frame.body, server, connection)

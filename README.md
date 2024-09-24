@@ -93,4 +93,3 @@ Please read the [Contribution Guidelines](CONTRIBUTING.md) for more information.
 ## License 📝
 
 This project is licensed under the [GPL-3.0 License](LICENSE).
-NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG.

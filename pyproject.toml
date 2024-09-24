@@ -3,7 +3,7 @@ requires = ["setuptools"]
 
 [project]
 name = "PieRakNet"
-version = "2.1.1"
+version = "2.2.1"
 readme = {"file" = "README.md", "content-type" = "text/markdown"}
 authors = [
   {"name" = "LapisMYT"},

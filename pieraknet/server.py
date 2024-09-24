@@ -3,6 +3,7 @@ import random
 import socket
 import sys
 import time
+import select
 
 from pieraknet.handlers.offline_ping import OfflinePingHandler
 from pieraknet.handlers.open_connection_request_1 import OpenConnectionRequest1Handler
@@ -12,8 +13,10 @@ from pieraknet.packets.open_connection_request_1 import OpenConnectionRequest1
 from pieraknet.packets.open_connection_request_2 import OpenConnectionRequest2
 from pieraknet.protocol_info import ProtocolInfo
 
+
 class ConnectionNotFound(Exception):
     pass
+
 
 class Server:
     def __init__(self, 
@@ -21,11 +24,11 @@ class Server:
                  port=19132, 
                  ipv=4, 
                  logger=None, 
-                 logginglevel="DEBUG", 
+                 logginglevel="INFO", 
                  game="MCPE", 
                  name="PieRakNet", 
-                 game_protocol_version=589, 
-                 version_name="1.20.0", 
+                 game_protocol_version=729, 
+                 version_name="1.21.30", 
                  max_player_count=20, 
                  modt="Powered by PieRakNet", 
                  game_mode="survival", 
@@ -47,7 +50,6 @@ class Server:
         self.name = name
         self.game_protocol_version = game_protocol_version
         self.version_name = version_name
-        self.player_count = 0
         self.max_player_count = max_player_count
         self.server_id = "13253860892328930866"
         self.modt = modt
@@ -57,32 +59,32 @@ class Server:
         self.raknet_protocol_version = 11
         self.guid = random.randint(0, sys.maxsize - 1)
         self.connections = []
-        self.responseData = self.responseDataUpdater()
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.SOL_UDP)
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.start_time = time.time()
-        self.maxsize = 4096
         self.magic = b'\x00\xff\xff\x00\xfe\xfe\xfe\xfe\xfd\xfd\xfd\xfd\x12\x34\x56\x78'
         self.running = False
         self.timeout = 15
+        self.maxsize = 4096
+        self.response_data = self.update_response_data()
         self.logger.info('Server initialized.')
 
     def send(self, data, address: tuple):
         if not isinstance(data, bytes):
             self.logger.debug(f"Encoding data to bytes: {data}")
             data = str(data).encode()
-        self.logger.debug(f"Sending data to {address}: {data}")
+        self.logger.debug(f"Sending data to {address}")
         try:
             self.socket.sendto(data, address)
-        except:
-            self.logger.error(f"Failed to send data to {address}: {data}")
+        except OSError as e:
+            self.logger.error(f"Failed to send data to {address}: {e}")
 
-    def responseDataUpdater(self):
+    def update_response_data(self):
         player_count = len(self.connections)
-        self.responseData = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};{player_count};{self.max_player_count};{self.server_id};{self.modt};{self.game_mode};{self.game_mode_number};{self.portv6};{self.port}"
-        # for connection in self.connections:
-        #     print(connection)
-        # print(self.responseData)
-        return self.responseData
+        self.response_data = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};" \
+               f"{player_count};{self.max_player_count};{self.server_id};{self.modt};" \
+               f"{self.game_mode};{self.game_mode_number};{self.portv6};{self.port}"
 
     def get_connection(self, address):
         for connection in self.connections:
@@ -93,7 +95,7 @@ class Server:
     def add_connection(self, connection):
         if connection not in self.connections:
             self.connections.append(connection)
-            self.responseDataUpdater()
+            self.update_response_data()
             self.logger.debug(f"Added connection: {connection} for address {connection.address}")
         else:
             self.logger.warning(f"Connection already exists: {connection.address}")
@@ -101,30 +103,28 @@ class Server:
     def remove_connection(self, connection):
         if connection in self.connections:
             self.connections.remove(connection)
-            self.responseDataUpdater()
+            self.update_response_data()
             self.logger.debug(f"Removed connection: {connection} for address {connection.address}")
         else:
             self.logger.warning(f"Connection not found: {connection.address}")
-
-    def get_all_connections(self):
-        return self.connections
 
     def start(self):
         self.running = True
         self.socket.bind((self.hostname, self.port))
         self.logger.info(f"Server started on {self.hostname}:{self.port}!")
+
         while self.running:
-            time.sleep(1 / 20)
-            try:
-                data, client = self.socket.recvfrom(self.maxsize)
-            except OSError as e:
-                self.logger.warning(f"OS error while receiving data: {e}")
-                continue
-            if data:
-                self.handle_data(data, client)
+            ready_sockets, _, _ = select.select([self.socket], [], [], 0.05)
+            if self.socket in ready_sockets:
+                try:
+                    data, client = self.socket.recvfrom(self.maxsize)
+                except OSError as e:
+                    self.logger.warning(f"OS error while receiving data: {e}")
+                    continue
+                if data:
+                    self.handle_data(data, client)
 
     def handle_data(self, data, client):
-        # print(data)
         if data[0] in {ProtocolInfo.OFFLINE_PING, ProtocolInfo.OFFLINE_PING_OPEN_CONNECTIONS}:
             packet = OfflinePing(data)
             OfflinePingHandler.handle(packet, self, client)
