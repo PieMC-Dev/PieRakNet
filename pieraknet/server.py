@@ -27,8 +27,8 @@ class Server:
                  logginglevel="INFO", 
                  game="MCPE", 
                  name="PieRakNet", 
-                 game_protocol_version=589, 
-                 version_name="1.20.0", 
+                 game_protocol_version=729, 
+                 version_name="1.21.30", 
                  max_player_count=20, 
                  modt="Powered by PieRakNet", 
                  game_mode="survival", 
@@ -67,7 +67,7 @@ class Server:
         self.running = False
         self.timeout = 15
         self.maxsize = 4096
-        self.response_data = self.generate_response_data()
+        self.response_data = self.update_response_data()
         self.logger.info('Server initialized.')
 
     def send(self, data, address: tuple):
@@ -80,14 +80,11 @@ class Server:
         except OSError as e:
             self.logger.error(f"Failed to send data to {address}: {e}")
 
-    def generate_response_data(self):
+    def update_response_data(self):
         player_count = len(self.connections)
-        return f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};" \
+        self.response_data = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};" \
                f"{player_count};{self.max_player_count};{self.server_id};{self.modt};" \
                f"{self.game_mode};{self.game_mode_number};{self.portv6};{self.port}"
-
-    def update_response_data(self):
-        self.response_data = self.generate_response_data()
 
     def get_connection(self, address):
         for connection in self.connections:
