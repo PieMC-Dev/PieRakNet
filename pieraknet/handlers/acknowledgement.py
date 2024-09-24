@@ -6,7 +6,7 @@ class AckHandler:
     def handle(data: bytes, server, connection):
         """Handle received ACK packets."""
         ack_packet = Ack(data)
-        ack_packet.decode_payload()
+        ack_packet.decode()
 
         connection.logger.debug(f"Received ACK for sequence numbers: {ack_packet.sequence_numbers}")
 
@@ -22,10 +22,8 @@ class AckHandler:
         ack_packet = Ack()
         ack_packet.sequence_numbers = [sequence_number]  # Sending a single ACK for the received sequence number
 
-        # Encode the ACK packet
-        buffer = Buffer()
-        ack_packet.encode_payload()  # Ensure this is defined in the Ack class
-        connection.send_data(buffer.getvalue())  # Send the ACK
+        ack_packet.encode()  # Ensure this is defined in the Ack class
+        connection.send_data(ack_packet.getvalue())  # Send the ACK
         server.logger.debug(f"ACK sent for sequence number: {sequence_number}")
 
 class NackHandler:
@@ -33,7 +31,7 @@ class NackHandler:
     def handle(data: bytes, server, connection):
         """ Handle received NACK packets. """
         nack_packet = Nack(data)
-        nack_packet.decode_payload()
+        nack_packet.decode()
 
         connection.logger.debug(f"Received NACK for sequence numbers: {nack_packet.sequence_numbers}")
         

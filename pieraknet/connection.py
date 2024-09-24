@@ -2,14 +2,9 @@ import time
 import collections
 from pieraknet.buffer import Buffer
 from pieraknet.packets.frame_set import FrameSetPacket
-from pieraknet.packets.online_ping import OnlinePing
 from pieraknet.protocol_info import ProtocolInfo
 from pieraknet.handlers.connection_request import ConnectionRequestHandler
 from pieraknet.handlers.new_incoming_connection import NewIncomingConnectionHandler
-from pieraknet.handlers.established_connection import EstablishedConnectionHandler
-from pieraknet.handlers.online_ping import OnlinePingHandler
-from pieraknet.handlers.game_packet import GamePacketHandler
-from pieraknet.handlers.unknown_packet import UnknownPacketHandler
 from pieraknet.handlers.acknowledgement import AckHandler, NackHandler
 from pieraknet.handlers.frame_set import FrameSetHandler
 from pieraknet.handlers.disconnect import DisconnectHandler
@@ -71,7 +66,6 @@ class Connection:
     def update(self):
         """ Periodically check for lost packets and handle ACK/NACK """
         self.acknowledge()
-        self.negative_acknowledge()
         self.process_retransmissions()
 
     def handle_packet_loss(self, incoming_sequence_number):
@@ -84,26 +78,14 @@ class Connection:
     def handle_connection_requests(self, frame):
         packet_type = frame.body[0]
         if packet_type == ProtocolInfo.CONNECTION_REQUEST:
-            self._process_connection_request(frame)
+            connection_packet = ConnectionRequestHandler.handle(frame.body, self.server, self)
+            frame_set_packet = FrameSetPacket().create_frame_set_packet(connection_packet, self.client_sequence_number, flags=0x64)
+            buffer = Buffer()
+            frame_set_packet.encode(buffer)
+            self.send_data(buffer.getvalue())
+            self.connected = True
         elif packet_type == ProtocolInfo.NEW_INCOMING_CONNECTION:
             NewIncomingConnectionHandler.handle(frame.body, self.server, self)
-
-    def _process_connection_request(self, frame):
-        connection_packet = ConnectionRequestHandler.handle(frame.body, self.server, self)
-        frame_set_packet = FrameSetPacket().create_frame_set_packet(connection_packet, self.client_sequence_number, flags=0x64)
-        buffer = Buffer()
-        frame_set_packet.encode(buffer)
-        self.send_data(buffer.getvalue())
-        self.connected = True
-
-    def handle_established_connection(self, frame):      
-        EstablishedConnectionHandler.handle(frame, self.server, self)
-
-    def handle_disconnect(self, frame_body):
-        DisconnectHandler.handle(frame_body, self.server, self)
-
-    def process_unknown_packet(self, frame):
-        UnknownPacketHandler.handle(frame.body, self.server, self)
 
     def send_data(self, data):
         self.server.send(data, self.address)
@@ -117,15 +99,7 @@ class Connection:
             self.send_data(ack_packet)
             self.ack_queue.clear()
 
-    def negative_acknowledge(self):
-        """ Send accumulated NACKs """
         if self.nack_queue:
             nack_packet = NackHandler.create_nack_packet(list(self.nack_queue))
             self.send_data(nack_packet)
             self.nack_queue.clear()
-
-    def send_data(self, data):
-        """ Send data and store it in the recovery queue """
-        self.server.send(data, self.address)
-        self.recovery_queue[self.server_sequence_number] = (data, time.time())
-        self.server_sequence_number += 1

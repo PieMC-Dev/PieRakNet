@@ -2,6 +2,7 @@ from pieraknet.protocol_info import ProtocolInfo
 from pieraknet.handlers.online_ping import OnlinePingHandler
 from pieraknet.handlers.game_packet import GamePacketHandler
 from pieraknet.handlers.disconnect import DisconnectHandler
+from pieraknet.handlers.unknown_packet import UnknownPacketHandler
 
 class EstablishedConnectionHandler:
     @staticmethod
@@ -18,4 +19,4 @@ class EstablishedConnectionHandler:
         elif packet_type == ProtocolInfo.DISCONNECT:
             DisconnectHandler.handle(frame.body, server, connection)
         else:
-            connection.process_unknown_packet(frame)
+            UnknownPacketHandler.handle(frame.body, server, connection)
