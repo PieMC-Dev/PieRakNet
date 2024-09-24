@@ -14,7 +14,15 @@ class AckHandler:
 
         for sequence_number in packet.sequence_numbers:
             connection.recovery_queue.pop(sequence_number, None)
-
+            
+    @staticmethod
+    def create_ack_packet(sequence_numbers):
+        """ Crea un paquete ACK a partir de una lista de números de secuencia """
+        ack_packet = Ack()
+        ack_packet.sequence_numbers = sequence_numbers
+        ack_packet.encode()
+        return ack_packet.getvalue()
+    
     @staticmethod
     def send_ack(server, connection, sequence_number):
         ack_packet = Ack()

@@ -55,11 +55,10 @@ class Connection:
             self.server.logger.error(f"Unknown packet ID: {packet_id}")
 
     def handle_packet_loss(self, incoming_sequence_number):
-        if incoming_sequence_number in self.recovery_queue:
-            self.logger.warning(f"Packet loss detected for sequence number {incoming_sequence_number}. Retransmitting...")
-            lost_packet = self.recovery_queue[incoming_sequence_number]
-            self.send_data(lost_packet)
-        PacketLossHandler.handle(incoming_sequence_number, self.server, self)
+        missing_packets = range(self.client_sequence_number + 1, incoming_sequence_number)
+        if missing_packets:
+            self.nack_queue.extend(missing_packets)
+            PacketLossHandler.handle(incoming_sequence_number, self.server, self)
 
     def handle_connection_requests(self, frame):
         packet_type = frame.body[0]
@@ -105,7 +104,7 @@ class Connection:
 
     def send_data(self, data):
         self.server.send(data, self.address)
-        self.recovery_queue[self.server_sequence_number] = (data, time.time())  # Track sent data with timestamp
+        self.recovery_queue[self.server_sequence_number] = (data, time.time())
         self.server_sequence_number += 1
 
     def acknowledge(self):
@@ -120,18 +119,19 @@ class Connection:
             self.send_data(nack_packet)
             self.nack_queue.clear()
 
+
     def update(self):
-        self.acknowledge()
-        self.negative_acknowledge()
-        
+        """ Periodically check for lost packets and handle ACK/NACK """
+        self.acknowledge()  # Envía ACK si hay algún número en la cola
+        self.negative_acknowledge()  # Envía NACK si hay números de secuencia perdidos
+
         current_time = time.time()
         to_resend = []
-        
+
         for seq_num, (packet, timestamp) in list(self.recovery_queue.items()):
             if current_time - timestamp > self.server.timeout:
                 to_resend.append((seq_num, packet))
                 self.logger.debug(f"Resending packet with sequence number {seq_num}")
-        
+
         for seq_num, packet in to_resend:
             self.send_data(packet)
-            self.recovery_queue[seq_num] = (packet, current_time)

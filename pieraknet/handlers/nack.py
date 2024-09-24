@@ -10,7 +10,13 @@ class NackHandler:
 
         for sequence_number in packet.sequence_numbers:
             if sequence_number in connection.recovery_queue:
-                lost_packet = connection.recovery_queue[sequence_number]
-                lost_packet.sequence_number = connection.server_sequence_number
-                connection.server_sequence_number += 1
-                connection.send_data(lost_packet.encode())
+                lost_packet, _ = connection.recovery_queue[sequence_number]
+                connection.send_data(lost_packet)
+
+    @staticmethod
+    def create_nack_packet(sequence_numbers):
+        """ Crea un paquete NACK a partir de una lista de números de secuencia perdidos """
+        nack_packet = Nack()
+        nack_packet.sequence_numbers = sequence_numbers
+        nack_packet.encode()
+        return nack_packet.getvalue()
