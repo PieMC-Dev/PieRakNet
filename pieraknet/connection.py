@@ -10,8 +10,7 @@ from pieraknet.handlers.established_connection import EstablishedConnectionHandl
 from pieraknet.handlers.online_ping import OnlinePingHandler
 from pieraknet.handlers.game_packet import GamePacketHandler
 from pieraknet.handlers.unknown_packet import UnknownPacketHandler
-from pieraknet.handlers.ack import AckHandler
-from pieraknet.handlers.nack import NackHandler
+from pieraknet.handlers.acknowledgement import AckHandler, NackHandler
 from pieraknet.handlers.frame_set import FrameSetHandler
 from pieraknet.handlers.disconnect import DisconnectHandler
 from pieraknet.handlers.packet_loss import PacketLossHandler
@@ -41,20 +40,42 @@ class Connection:
         self.server.remove_connection(self)
 
     def handle(self, data):
+        """ Handle incoming packets based on packet_id """
         packet_id = data[0]
 
-        if packet_id == ProtocolInfo.ACK:
-            AckHandler.handle(data, self.server, self)
-        elif packet_id == ProtocolInfo.NACK:
-            NackHandler.handle(data, self.server, self)
-        elif ProtocolInfo.FRAME_SET_0 <= packet_id <= ProtocolInfo.FRAME_SET_F:
-            FrameSetHandler.handle(data, self.server, self)
-        elif packet_id == ProtocolInfo.DISCONNECT:
-            DisconnectHandler.handle(data, self.server, self)
+        handler_map = {
+            ProtocolInfo.ACK: AckHandler.handle,
+            ProtocolInfo.NACK: NackHandler.handle,
+            ProtocolInfo.DISCONNECT: DisconnectHandler.handle,
+            **{pid: FrameSetHandler.handle for pid in range(ProtocolInfo.FRAME_SET_0, ProtocolInfo.FRAME_SET_F + 1)},
+        }
+
+        if handler := handler_map.get(packet_id):
+            handler(data, self.server, self)
         else:
             self.server.logger.error(f"Unknown packet ID: {packet_id}")
 
+    def process_retransmissions(self):
+        """ Retry sending unacknowledged packets """
+        current_time = time.time()
+        to_resend = []
+
+        for seq_num, (packet, timestamp) in list(self.recovery_queue.items()):
+            if current_time - timestamp > self.server.timeout:
+                to_resend.append((seq_num, packet))
+                self.logger.debug(f"Resending packet with sequence number {seq_num}")
+
+        for seq_num, packet in to_resend:
+            self.send_data(packet)
+
+    def update(self):
+        """ Periodically check for lost packets and handle ACK/NACK """
+        self.acknowledge()
+        self.negative_acknowledge()
+        self.process_retransmissions()
+
     def handle_packet_loss(self, incoming_sequence_number):
+        """ Detect and handle lost packets """
         missing_packets = range(self.client_sequence_number + 1, incoming_sequence_number)
         if missing_packets:
             self.nack_queue.extend(missing_packets)
@@ -108,30 +129,21 @@ class Connection:
         self.server_sequence_number += 1
 
     def acknowledge(self):
+        """ Send accumulated ACKs """
         if self.ack_queue:
             ack_packet = AckHandler.create_ack_packet(list(self.ack_queue))
             self.send_data(ack_packet)
             self.ack_queue.clear()
 
     def negative_acknowledge(self):
+        """ Send accumulated NACKs """
         if self.nack_queue:
             nack_packet = NackHandler.create_nack_packet(list(self.nack_queue))
             self.send_data(nack_packet)
             self.nack_queue.clear()
 
-
-    def update(self):
-        """ Periodically check for lost packets and handle ACK/NACK """
-        self.acknowledge()  # Envía ACK si hay algún número en la cola
-        self.negative_acknowledge()  # Envía NACK si hay números de secuencia perdidos
-
-        current_time = time.time()
-        to_resend = []
-
-        for seq_num, (packet, timestamp) in list(self.recovery_queue.items()):
-            if current_time - timestamp > self.server.timeout:
-                to_resend.append((seq_num, packet))
-                self.logger.debug(f"Resending packet with sequence number {seq_num}")
-
-        for seq_num, packet in to_resend:
-            self.send_data(packet)
+    def send_data(self, data):
+        """ Send data and store it in the recovery queue """
+        self.server.send(data, self.address)
+        self.recovery_queue[self.server_sequence_number] = (data, time.time())
+        self.server_sequence_number += 1

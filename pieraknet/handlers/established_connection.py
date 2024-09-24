@@ -1,5 +1,4 @@
 from pieraknet.protocol_info import ProtocolInfo
-from pieraknet.handlers.ack import AckHandler
 
 class EstablishedConnectionHandler:
     @staticmethod

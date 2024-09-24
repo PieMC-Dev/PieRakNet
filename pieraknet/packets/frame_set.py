@@ -62,14 +62,12 @@ class FrameSetPacket:
 
         return buffer.getvalue()
 
-    def create_frame_set_packet(self, body, client_sequence_number, flags=0):
+    def create_frame_set_packet(self, body: bytes, client_sequence_number: int, flags: int = 0):
         self.sequence_number = client_sequence_number
         frame = Frame(self.server)
         frame.flags = flags
         frame.length_in_bits = len(body) * 8
         frame.body = body
-
         self.frames.append(frame)
 
         return self
-
