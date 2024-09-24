@@ -95,7 +95,7 @@ class Connection:
         self.server.logger.debug(f"We have just sent an Online Pong to {self.address}")
 
     def process_game_packet(self, frame):
-        GamePacketHandler.handle(frame, self.server, self)
+        GamePacketHandler.handle(frame.body, self.server, self)
 
     def handle_disconnect(self, frame_body):
         DisconnectHandler.handle(frame_body, self.server, self)
