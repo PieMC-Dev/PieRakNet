@@ -20,7 +20,7 @@ class ConnectionNotFound(Exception):
 
 class Server:
     def __init__(self, 
-                 hostname='0.0.0.0', 
+                 hostname="0.0.0.0",
                  port=19132, 
                  ipv=4, 
                  logger=None, 
@@ -59,7 +59,14 @@ class Server:
         self.raknet_protocol_version = 11
         self.guid = random.randint(0, sys.maxsize - 1)
         self.connections = []
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        
+        if self.ipv == 6:
+            self.socket = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+            self.socket.bind((self.hostname, self.port, 0, 0))  # IPv6 bind
+        else:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.socket.bind((self.hostname, self.port))  # IPv4 bind
+
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.start_time = time.time()
@@ -82,9 +89,10 @@ class Server:
 
     def update_response_data(self):
         player_count = len(self.connections)
-        self.response_data = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};" \
+        response_data = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};" \
                f"{player_count};{self.max_player_count};{self.server_id};{self.modt};" \
                f"{self.game_mode};{self.game_mode_number};{self.portv6};{self.port}"
+        return response_data
 
     def get_connection(self, address):
         for connection in self.connections:
@@ -110,8 +118,7 @@ class Server:
 
     def start(self):
         self.running = True
-        self.socket.bind((self.hostname, self.port))
-        self.logger.info(f"Server started on {self.hostname}:{self.port}!")
+        self.logger.info(f"Server started on {self.hostname}:{self.port}! (IPv{'6' if self.ipv == 6 else '4'})")
 
         while self.running:
             ready_sockets, _, _ = select.select([self.socket], [], [], 0.05)

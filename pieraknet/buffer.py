@@ -193,13 +193,18 @@ class Buffer(BytesIO):
 
     def read_address(self):
         ipv = self.read_byte()
-        if ipv == 4:
+        if ipv == 4:  # IPv4
             octets = [self.read_byte() for _ in range(4)]
             hostname = '.'.join(map(str, octets))
             port = self.read_unsigned_short()
             return hostname, port
+        elif ipv == 6:  # IPv6
+            hextets = [self.read_byte() << 8 | self.read_byte() for _ in range(8)]
+            hostname = ':'.join(format(hextet, 'x') for hextet in hextets)
+            port = self.read_unsigned_short()
+            return hostname, port
         else:
-            raise UnsupportedIPVersion('IP version is not 4')
+            raise UnsupportedIPVersion('IP version is not supported')
 
     def write_address(self, address: tuple):
         if not isinstance(address, tuple) or len(address) != 2:
@@ -212,17 +217,24 @@ class Buffer(BytesIO):
         if not isinstance(port, int) or not (0 <= port <= 65535):
             raise ValueError("Port must be an integer between 0 and 65535.")
         
-        # Write IPv4 address
-        self.write_byte(4)
-        octets = hostname.split('.')
-        if len(octets) != 4:
-            raise ValueError("Invalid IPv4 address format.")
-        
-        # Convert the octets to bytes and write them
-        for octet in octets:
-            self.write_byte(int(octet))
+        if ':' in hostname:  # IPv6
+            self.write_byte(6)
+            hextets = hostname.split(':')
+            if len(hextets) != 8:
+                raise ValueError("Invalid IPv6 address format.")
+            for hextet in hextets:
+                self.write_byte(int(hextet, 16) >> 8)
+                self.write_byte(int(hextet, 16) & 0xFF)
+        else:  # IPv4
+            self.write_byte(4)
+            octets = hostname.split('.')
+            if len(octets) != 4:
+                raise ValueError("Invalid IPv4 address format.")
+            for octet in octets:
+                self.write_byte(int(octet))
         
         self.write_unsigned_short(port)
+
 
     def read_var_int(self):
         value: int = 0

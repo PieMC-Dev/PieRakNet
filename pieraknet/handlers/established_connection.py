@@ -1,19 +1,22 @@
 from pieraknet.protocol_info import ProtocolInfo
-from pieraknet.handlers.ack import AckHandler
+from pieraknet.handlers.online_ping import OnlinePingHandler
+from pieraknet.handlers.game_packet import GamePacketHandler
+from pieraknet.handlers.disconnect import DisconnectHandler
+from pieraknet.handlers.unknown_packet import UnknownPacketHandler
 
 class EstablishedConnectionHandler:
     @staticmethod
     def handle(frame, server, connection):
-        packet_type = frame.body[0]
+        packet_type = frame['body'][0]
 
         server.logger.debug("Established Connection Packet:")
         server.logger.debug(f"- Packet Type: {packet_type}")
         
         if packet_type == ProtocolInfo.ONLINE_PING:
-            connection.process_online_ping(frame)
+            OnlinePingHandler.process_online_ping(frame, server, connection)
         elif packet_type == ProtocolInfo.GAME_PACKET:
-            connection.process_game_packet(frame)
+            GamePacketHandler.handle(frame['body'], server, connection)
         elif packet_type == ProtocolInfo.DISCONNECT:
-            connection.handle_disconnect(frame.body)
+            DisconnectHandler.handle(frame['body'], server, connection)
         else:
-            connection.process_unknown_packet(frame)
+            UnknownPacketHandler.handle(frame['body'], server, connection)

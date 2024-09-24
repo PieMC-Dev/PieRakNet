@@ -1,90 +1,115 @@
 from pieraknet.buffer import Buffer
 from pieraknet.packets.packet import Packet
-from pieraknet.packets.frame import Frame
 from pieraknet.protocol_info import ProtocolInfo
 
-# Example packet: b'\x84\x00\x00\x00\x40\x00\x90\x00\x00\x00\t\xb3;\xc81\xbe\xfb\x96*\x00\x00\x00\x00\x00\x00\xdb\xf2\x00'
-# x84: Packet ID
-# Sequence number: uint24le (en este caso \x00\x00\x00)
-# Flags (byte): (en este caso \x40)
-#   reliability_type = top 3 bits
-#   fourth bit is 1 when the frame is fragmented and part of a compound.
-# Length IN BITS (unsigned short): Length of the body in bits. (en este caso \x00\x90)
-# Reliable Frame Index (uint24le): only if reliable (en este caso \x00\x00\x00)
-# Sequenced Frame Index (uint24le): only if sequenced (en este caso \x00\x00\x00)
-# --- ORDER --- 
-# Ordered Frame Index (uint24le): only if ordered (en este caso \x00)
-# Order Channel (byte): only if ordered (en este caso \x00)
-# --- FRAGMENT ---
-# Compound Size (int): only if fragmented (en este caso \x00\x00\x00)
-# Compound ID (short): only if fragmented (en este caso \x00\x00)
-# Index (int): only if fragmented (en este caso \x00\x00\x00\x00)
-# --- BODY ---
-# Body (length in bits / 8): only if not fragmented (en este caso \xdb\xf2\x00)
-
-
-
-#ID	Name                    Reliable    Ordered    Sequenced
-#0	unreliable			    
-#1	unreliable sequenced		          x	           x
-#2	reliable	              x		
-#3	reliable ordered 	      x           x	
-#4	reliable sequenced	      x           x	           x
-#5	unreliable (+ ACK receipt)			
-#6	reliable (+ ACK receipt)  x		
-#7	reliable ordered (+ ACK receipt)x	  x	
-
-
-class FrameSetPacket:
-    def __init__(self, server=None):
+class FrameSetPacket(Packet):
+    def __init__(self, server=None, data: bytes = b''):
+        super().__init__(data)
         self.server = server
         self.packet_id = ProtocolInfo.FRAME_SET
         self.sequence_number = 0
         self.frames = []
 
-    def decode(self, buffer: Buffer):
+    def decode(self, data):
+        buffer = Buffer(data)
         self.packet_id = buffer.read_byte()
-        # print(f"Read Packet ID: {self.packet_id}")
-
         self.sequence_number = buffer.read_uint24le()
-        # print(f"Read Sequence Number: {self.sequence_number}")
 
         while not buffer.feos():
-            frame = Frame(self.server)
-            frame.decode(buffer)
+            frame = self.decode_frame(buffer)
             self.frames.append(frame)
-            # print(f"Read Frame: {frame}")
 
-    def encode(self, buffer: Buffer):
-        # Escribir el ID del paquete
-        buffer.write_byte(self.packet_id)  # Su valor debe ser 0x80
-        # print(f"Written Packet ID: {self.packet_id}")
-        
-        # Escribir el número de secuencia
+    def decode_frame(self, buffer):
+
+        frame = {
+            'flags': buffer.read_byte(),
+            'length_in_bits': buffer.read_unsigned_short(),
+            'reliable_frame_index': 0,
+            'sequenced_frame_index': 0,
+            'ordered_frame_index': 0,
+            'order_channel': 0,
+            'compound_size': 0,
+            'compound_id': 0,
+            'index': 0,
+            'body': b''
+        }
+
+        reliability_type = (frame['flags'] >> 5) & 0x07
+        is_fragmented = (frame['flags'] >> 4) & 0x01
+
+        if reliability_type in {2, 3, 4, 6, 7}:
+            frame['reliable_frame_index'] = buffer.read_uint24le()
+
+        if reliability_type in {1, 4}:
+            frame['sequenced_frame_index'] = buffer.read_uint24le()
+
+        if reliability_type in {1, 3, 4, 7}:
+            frame['ordered_frame_index'] = buffer.read_uint24le()
+            frame['order_channel'] = buffer.read_byte()
+
+        if is_fragmented:
+            frame['compound_size'] = buffer.read_int()
+            frame['compound_id'] = buffer.read_short()
+            frame['index'] = buffer.read_int()
+
+        body_length = (frame['length_in_bits'] + 7) // 8
+        frame['body'] = buffer.read(body_length)
+
+        return frame
+
+    def encode(self):
+        buffer = Buffer()
+        buffer.write_byte(self.packet_id)
         buffer.write_uint24le(self.sequence_number)
-        # print(f"Written Sequence Number: {self.sequence_number}")
-        
-        # Codificar cada frame y escribirlo en el buffer
+
         for frame in self.frames:
-            frame_buffer = Buffer()  # Crear un buffer separado para cada frame
-            frame.encode(frame_buffer)  # Codificar el frame
-            buffer.write(frame_buffer.getvalue())  # Escribir el frame codificado en el buffer general
-            # print(f"Written Frame: {frame}")
-                
-        # Retornar el valor codificado del buffer
+            self.encode_frame(buffer, frame)
+
         return buffer.getvalue()
 
-    def create_frame_set_packet(self, body, client_sequence_number, flags=0):
-        # print(f"create_frame_set_packet Flags (hex): {hex(flags)}")
-        # print(f"create_frame_set_packet Flags (dec): {flags}")
-        # Crear un nuevo frame con el cuerpo provisto
-        self.sequence_number = client_sequence_number
-        frame = Frame(self.server)
-        frame.flags = flags
-        frame.length_in_bits = len(body) * 8
-        frame.body = body
+    def encode_frame(self, buffer, frame):
+        buffer.write_byte(frame['flags'])
+        buffer.write_unsigned_short(frame['length_in_bits'])
 
-        # Añadir el objeto Frame a la lista de frames
+        reliability_type = (frame['flags'] >> 5) & 0x07
+        is_fragmented = (frame['flags'] >> 4) & 0x01
+
+        if reliability_type in {2, 3, 4, 6, 7}:
+            buffer.write_uint24le(frame['reliable_frame_index'])
+
+        if reliability_type in {1, 4}:
+            buffer.write_uint24le(frame['sequenced_frame_index'])
+
+        if reliability_type in {1, 3, 4, 7}:
+            buffer.write_uint24le(frame['ordered_frame_index'])
+            buffer.write_byte(frame['order_channel'])
+
+        if is_fragmented:
+            buffer.write_int(frame['compound_size'])
+            buffer.write_short(frame['compound_id'])
+            buffer.write_int(frame['index'])
+
+        buffer.write(frame['body'])
+
+    def create_frame(self, body: bytes, flags: int = 0):
+        frame = {
+            'flags': flags,
+            'length_in_bits': len(body) * 8,
+            'body': body,
+            'reliable_frame_index': 0,
+            'sequenced_frame_index': 0,
+            'ordered_frame_index': 0,
+            'order_channel': 0,
+            'compound_size': 0,
+            'compound_id': 0,
+            'index': 0
+        }
         self.frames.append(frame)
-        
-        return self
+
+    def set_sequence_number(self, sequence_number: int):
+        self.sequence_number = sequence_number
+
+    def create_frame_set_packet(self, server, packet, client_sequence_number, flags=0):
+        self.server = server
+        self.sequence_number = client_sequence_number
+        self.create_frame(packet, flags)

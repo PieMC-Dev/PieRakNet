@@ -1,5 +1,7 @@
 from pieraknet.packets.online_ping import OnlinePing
 from pieraknet.packets.online_pong import OnlinePong
+from pieraknet.packets.frame_set import FrameSetPacket
+from pieraknet.buffer import Buffer
 import time
 
 class OnlinePingHandler:
@@ -18,3 +20,17 @@ class OnlinePingHandler:
 
         new_packet.encode()
         return new_packet.getvalue()
+
+    def process_online_ping(frame, server, connection):
+
+        OnlinePingPacket = OnlinePing(frame['body'])
+        OnlinePongPacket = OnlinePingHandler.handle(OnlinePing(frame['body']), server)
+
+
+        OnlinePongPacket = OnlinePingHandler.handle(OnlinePingPacket, server)
+
+        frame_set_packet = FrameSetPacket(server)
+        frame_set_packet.create_frame(OnlinePongPacket, flags=0x64)
+
+        # Codificar y enviar directamente sin usar Buffer
+        connection.send_data(frame_set_packet.encode())
