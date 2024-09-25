@@ -1,4 +1,4 @@
-from .server import Server
+from pieraknet.server import Server
 
 if __name__ == '__main__':
     server = Server(logginglevel = "INFO")

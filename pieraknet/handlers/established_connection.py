@@ -15,7 +15,7 @@ class EstablishedConnectionHandler:
         if packet_type == ProtocolInfo.ONLINE_PING:
             OnlinePingHandler.process_online_ping(frame, server, connection)
         elif packet_type == ProtocolInfo.GAME_PACKET:
-            GamePacketHandler.handle(frame['body'], server, connection)
+            GamePacketHandler.handle(frame, server, connection)
         elif packet_type == ProtocolInfo.DISCONNECT:
             DisconnectHandler.handle(frame['body'], server, connection)
         else:
