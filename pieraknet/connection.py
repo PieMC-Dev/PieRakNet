@@ -92,8 +92,10 @@ class Connection:
 
     def send_data(self, data):
         self.server.send(data, self.address)
-        self.recovery_queue[self.server_sequence_number] = (data, time.time())
-        self.server_sequence_number += 1
+        # if its a frame set packet
+        if ProtocolInfo.FRAME_SET_0 <= data[0] <= ProtocolInfo.FRAME_SET_F:
+            self.recovery_queue[self.server_sequence_number] = (data, time.time())
+            self.server_sequence_number += 1
 
     def acknowledge(self):
         """ Send accumulated ACKs """
