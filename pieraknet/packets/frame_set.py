@@ -7,7 +7,7 @@ class FrameSetPacket(Packet):
         super().__init__(data)
         self.server = server
         self.packet_id = ProtocolInfo.FRAME_SET
-        self.sequence_number = connection.server_sequence_number
+        self.sequence_number = 0
         self.frames = []
 
     def decode(self, data):
