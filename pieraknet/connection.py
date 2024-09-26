@@ -94,7 +94,6 @@ class Connection:
         self.server.send(data, self.address)
         # if its a frame set packet
         if ProtocolInfo.FRAME_SET_0 <= data[0] <= ProtocolInfo.FRAME_SET_F:
-            print(data[0] + "si")
             self.recovery_queue[self.server_sequence_number] = (data, time.time())
             self.server_sequence_number += 1
 
