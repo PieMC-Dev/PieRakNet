@@ -30,6 +30,7 @@ class OnlinePingHandler:
         OnlinePongPacket = OnlinePingHandler.handle(OnlinePingPacket, server)
 
         frame_set_packet = FrameSetPacket(server)
+        frame_set_packet.sequence_number = connection.client_sequence_number
         frame_set_packet.create_frame(OnlinePongPacket, flags=0x64)
 
         # Codificar y enviar directamente sin usar Buffer
