@@ -9,7 +9,7 @@ from pieraknet.handlers.acknowledgement import AckHandler, NackHandler
 from pieraknet.handlers.frame_set import FrameSetHandler
 from pieraknet.handlers.disconnect import DisconnectHandler
 from pieraknet.handlers.packet_loss import PacketLossHandler
-
+from pieraknet.handlers.online_ping import OnlinePingHandler
 
 class Connection:
     def __init__(self, server, address):
@@ -78,6 +78,7 @@ class Connection:
     def handle_connection_requests(self, frame):
         packet_type = frame['body'][0]
         if packet_type == ProtocolInfo.CONNECTION_REQUEST:
+            OnlinePingHandler.create_online_ping(self.server, self)
             connection_packet = ConnectionRequestHandler.handle(frame['body'], self.server, self)
             # Crear un FrameSetPacket
             frame_set_packet = FrameSetPacket(self.server)
