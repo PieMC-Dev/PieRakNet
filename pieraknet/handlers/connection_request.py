@@ -1,4 +1,3 @@
-import time
 from pieraknet.packets.connection_request import ConnectionRequest
 from pieraknet.packets.connection_request_accepted import ConnectionRequestAccepted
 

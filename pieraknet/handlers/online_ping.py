@@ -21,16 +21,28 @@ class OnlinePingHandler:
         new_packet.encode()
         return new_packet.getvalue()
 
+    def create_online_ping(server, connection):
+        new_ping = OnlinePing()
+        new_ping.client_timestamp = int(time.time() * 1000)
+        new_ping.encode()
+        OnlinePingPacket = new_ping.getvalue()
+
+        frame_set_packet = FrameSetPacket(server)
+        frame_set_packet.sequence_number = connection.server_sequence_number
+        frame_set_packet.create_frame(OnlinePingPacket, flags=0x00)
+
+        # Codificar y enviar directamente sin usar Buffer
+        connection.send_data(frame_set_packet.encode()) 
+    
     def process_online_ping(frame, server, connection):
 
         OnlinePingPacket = OnlinePing(frame['body'])
-        OnlinePongPacket = OnlinePingHandler.handle(OnlinePing(frame['body']), server)
-
 
         OnlinePongPacket = OnlinePingHandler.handle(OnlinePingPacket, server)
 
         frame_set_packet = FrameSetPacket(server)
-        frame_set_packet.create_frame(OnlinePongPacket, flags=0x64)
+        frame_set_packet.sequence_number = connection.server_sequence_number
+        frame_set_packet.create_frame(OnlinePongPacket, flags=0x00)
 
         # Codificar y enviar directamente sin usar Buffer
         connection.send_data(frame_set_packet.encode())
