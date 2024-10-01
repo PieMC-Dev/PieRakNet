@@ -34,7 +34,7 @@ class Buffer(BytesIO):
     def feos(self):
         return len(self.getvalue()[self.tell():]) == 0
 
-    def read_packet_id(self):  # Read Packet ID
+    def read_packet_id(self):
         return self.read_byte()
 
     def write_packet_id(self, data):
