@@ -19,6 +19,7 @@
 
 import struct
 from io import BytesIO
+import ipaddress
 
 class UnsupportedIPVersion(Exception):
     pass
@@ -207,21 +208,28 @@ class Buffer(BytesIO):
             raise UnsupportedIPVersion('IP version is not supported')
 
     def write_address(self, address: tuple):
-        if not isinstance(address, tuple) or len(address) != 2:
+        if not isinstance(address, tuple) or len(address) < 2:
             raise TypeError("Address must be a tuple with (hostname, port).")
-        
-        hostname, port = address
+
+        hostname = address[0]
+        port = address[1]
 
         if not isinstance(hostname, str):
             raise TypeError("Hostname must be a string.")
         if not isinstance(port, int) or not (0 <= port <= 65535):
             raise ValueError("Port must be an integer between 0 and 65535.")
-        
+
         if ':' in hostname:  # IPv6
             self.write_byte(6)
-            hextets = hostname.split(':')
+            try:
+                ipv6_address = ipaddress.IPv6Address(hostname)
+                hextets = ipv6_address.exploded.split(':')
+            except ipaddress.AddressValueError:
+                raise ValueError("Invalid IPv6 address format.")
+
             if len(hextets) != 8:
                 raise ValueError("Invalid IPv6 address format.")
+            
             for hextet in hextets:
                 self.write_byte(int(hextet, 16) >> 8)
                 self.write_byte(int(hextet, 16) & 0xFF)
@@ -232,9 +240,8 @@ class Buffer(BytesIO):
                 raise ValueError("Invalid IPv4 address format.")
             for octet in octets:
                 self.write_byte(int(octet))
-        
-        self.write_unsigned_short(port)
 
+        self.write_unsigned_short(port)
 
     def read_var_int(self):
         value: int = 0
