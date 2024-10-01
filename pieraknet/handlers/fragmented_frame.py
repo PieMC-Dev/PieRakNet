@@ -1,5 +1,3 @@
-from pieraknet.packets.frame_set import FrameSetPacket  # Asumiendo que el FrameSetPacket está en esta ruta
-
 class FragmentedFrameHandler:
     @staticmethod
     def handle(frame, server, connection):
@@ -27,4 +25,4 @@ class FragmentedFrameHandler:
                 'index': 0
             }
             del connection.fragmented_packets[frame['compound_id']]
-            connection.handle_frame(new_frame)  # Asegúrate de que esta función acepte un diccionario
+            connection.handle_frame(new_frame)
