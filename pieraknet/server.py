@@ -20,9 +20,9 @@ class ConnectionNotFound(Exception):
 
 class Server:
     def __init__(self, 
-                 hostname="0.0.0.0",
+                 hostname="::",
                  port=19132, 
-                 ipv=4, 
+                 ipv=6, 
                  logger=None, 
                  logginglevel="INFO", 
                  game="MCPE", 
