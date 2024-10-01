@@ -1,5 +1,4 @@
 from pieraknet.packets.frame_set import FrameSetPacket
-from pieraknet.buffer import Buffer
 from pieraknet.handlers.frame import FrameHandler
 from pieraknet.handlers.fragmented_frame import FragmentedFrameHandler
 from pieraknet.handlers.acknowledgement import AckHandler

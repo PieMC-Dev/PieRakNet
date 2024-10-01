@@ -1,5 +1,4 @@
 from pieraknet.packets.acknowledgement import Ack, Nack
-from pieraknet.buffer import Buffer
 
 class AckHandler:
     @staticmethod

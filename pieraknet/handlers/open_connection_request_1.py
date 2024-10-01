@@ -24,7 +24,7 @@ class OpenConnectionRequest1Handler:
         else:
             new_packet = IncompatibleProtocol()
             new_packet.raknet_protocol_version = server.raknet_protocol_version
-            new_packet.magic = packet.magic  # TODO: server.magic
+            new_packet.magic = packet.magic
             new_packet.server_guid = server.guid
 
         new_packet.encode()
