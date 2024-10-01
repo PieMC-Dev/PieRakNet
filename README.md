@@ -5,9 +5,10 @@
 </p>
 
 
+[![Build](https://github.com/PieMC-Dev/PieRakNet/actions/workflows/python-publish.yml/badge.svg)](https://github.com/PieMC-Dev/PieRakNet/actions/workflows/python-publish.yml)
+[![PyPI - Version](https://img.shields.io/pypi/v/pieraknet)](https://pypi.org/project/pieraknet/)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](https://github.com/PieMC-Dev/PieRakNet/blob/pieraknet/LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/PieMC-Dev/PieRakNet?color=blue)](https://github.com/PieMC-Dev/PieRakNet/commits/pieraknet)
-[![Languages](https://img.shields.io/github/languages/count/PieMC-Dev/PieRakNet?color=blue)](https://github.com/PieMC-Dev/PieRakNet)
 [![Discord](https://img.shields.io/discord/1120767457364279338?color=blue)](https://discord.gg/Bf3cXRUUnm)
 [![Stars](https://img.shields.io/github/stars/PieMC-Dev/PieRakNet?style=social&color=blue)](https://github.com/PieMC-Dev/PieRakNet/stargazers)
 
