@@ -1,5 +1,6 @@
 import time
 import collections
+
 from pieraknet.packets.frame_set import FrameSetPacket
 from pieraknet.protocol_info import ProtocolInfo
 from pieraknet.handlers.connection_request import ConnectionRequestHandler

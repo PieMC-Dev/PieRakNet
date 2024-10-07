@@ -1,7 +1,8 @@
+import time
+
 from pieraknet.packets.online_ping import OnlinePing
 from pieraknet.packets.online_pong import OnlinePong
 from pieraknet.packets.frame_set import FrameSetPacket
-import time
 
 class OnlinePingHandler:
     @staticmethod
