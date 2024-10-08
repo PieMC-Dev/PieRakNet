@@ -83,7 +83,7 @@ class Connection:
             # Crear un FrameSetPacket
             frame_set_packet = FrameSetPacket(self.server)
             frame_set_packet.sequence_number = self.client_sequence_number
-            frame_set_packet.create_frame(connection_packet, flags=0x64)
+            frame_set_packet.create_frame(connection_packet, flags=0x04)
 
             # Codificar y enviar directamente sin usar Buffer
             self.send_data(frame_set_packet.encode())
