@@ -10,6 +10,10 @@ class FrameSetPacket(Packet):
         self.sequence_number = 0
         self.frames = []
 
+        self.reliable_frame_counter = 0
+        self.sequenced_frame_counter = 0
+        self.ordered_frame_counter = 0
+
     def decode(self, data):
         buffer = Buffer(data)
         self.packet_id = buffer.read_byte()
@@ -20,7 +24,6 @@ class FrameSetPacket(Packet):
             self.frames.append(frame)
 
     def decode_frame(self, buffer):
-
         frame = {
             'flags': buffer.read_byte(),
             'length_in_bits': buffer.read_unsigned_short(),
@@ -57,6 +60,7 @@ class FrameSetPacket(Packet):
 
         return frame
 
+    # Encode each frame in a frameset
     def encode(self):
         buffer = Buffer()
         buffer.write_byte(self.packet_id)
@@ -92,6 +96,8 @@ class FrameSetPacket(Packet):
         buffer.write(frame['body'])
 
     def create_frame(self, body: bytes, flags: int = 0):
+        reliability_type = (flags >> 5) & 0x07
+
         frame = {
             'flags': flags,
             'length_in_bits': len(body) * 8,
@@ -104,6 +110,20 @@ class FrameSetPacket(Packet):
             'compound_id': 0,
             'index': 0
         }
+
+        if reliability_type in {2, 3, 4, 6, 7}:
+            frame['reliable_frame_index'] = self.reliable_frame_counter
+            self.reliable_frame_counter += 1
+
+        if reliability_type in {1, 4}:
+            frame['sequenced_frame_index'] = self.sequenced_frame_counter
+            self.sequenced_frame_counter += 1
+
+        if reliability_type in {1, 3, 4, 7}:
+            frame['ordered_frame_index'] = self.ordered_frame_counter
+            frame['order_channel'] = 0
+            self.ordered_frame_counter += 1
+
         self.frames.append(frame)
 
     def set_sequence_number(self, sequence_number: int):
