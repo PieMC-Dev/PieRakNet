@@ -27,13 +27,13 @@ class FrameSetPacket(Packet):
         frame = {
             'flags': buffer.read_byte(),
             'length_in_bits': buffer.read_unsigned_short(),
-            'reliable_frame_index': 0,
-            'sequenced_frame_index': 0,
-            'ordered_frame_index': 0,
-            'order_channel': 0,
-            'compound_size': 0,
-            'compound_id': 0,
-            'index': 0,
+            'reliable_frame_index': buffer.read_uint24le(),
+            'sequenced_frame_index': buffer.read_uint24le(),
+            'ordered_frame_index': buffer.read_uint24le(),
+            'order_channel': buffer.read_byte(),
+            'compound_size': buffer.read_int(),
+            'compound_id': buffer.read_short(),
+            'index': buffer.read_int(),
             'body': b''
         }
 
@@ -98,6 +98,7 @@ class FrameSetPacket(Packet):
     def create_frame(self, body: bytes, flags: int = 0):
         reliability_type = (flags >> 5) & 0x07
 
+        # TODO
         frame = {
             'flags': flags,
             'length_in_bits': len(body) * 8,
