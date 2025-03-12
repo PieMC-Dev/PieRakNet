@@ -145,6 +145,8 @@ class Server:
             try:
                 connection = self.get_connection(client)
                 connection.handle(data)
+                if hasattr(self, 'interface') and hasattr(self.interface, 'on_game_packet'):
+                    self.interface.on_game_packet(data, connection)
             except ConnectionNotFound:
                 self.logger.error(f"Connection not found for address {client}")
 
