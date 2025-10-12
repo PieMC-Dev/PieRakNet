@@ -7,6 +7,11 @@ test.py
 *.py[cod]
 __pycache__
 
+# Env
+.env
+venv
+.venv
+
 # Prerequisites
 *.d
 
