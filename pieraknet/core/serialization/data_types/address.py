@@ -122,4 +122,29 @@ class AddressV6(RakNetDataType):
 
 class AddressUnion(RakNetDataType):
     byte_size = None
-    ip_version = None
+    
+    def __init__(self, ip_version: int, address: AddressV4 | AddressV6):
+        self.ip_version = ip_version
+        self.ip_address = address
+
+    def serialize(self) -> bytes:
+        if self.ip_version == 4:
+            return self.ip_address.serialize()
+        if self.ip_version == 6:
+            return self.ip_address.serialize()
+        raise ValueError("Invalid IP version")
+
+    @classmethod
+    def deserialize(cls, data: bytes | BytesIO) -> "AddressUnion":
+        data = BytesIO(data) if not isinstance(data, BytesIO) else data
+        ip_version = Byte.deserialize(data).value
+        if ip_version == 4:
+            address = AddressV4.deserialize(data)
+        elif ip_version == 6:
+            address = AddressV6.deserialize(data)
+        else:
+            raise ValueError("Invalid IP version")
+        return AddressUnion(ip_version, address)
+
+    def __repr__(self):
+        return f"AddressUnion({self.ip_version}, {self.ip_address})"
