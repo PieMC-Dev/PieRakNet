@@ -12,12 +12,12 @@ class UnsignedInt24(RakNetDataType):
         self.value = value
 
     def serialize(self) -> bytes:
-        return self.value.to_bytes(3, "big", signed=False)
+        return self.value.to_bytes(3, "little", signed=False)
 
     @classmethod
     def deserialize(cls, data: bytes | BytesIO) -> "UnsignedInt24":
         data = data.read(cls.byte_size) if isinstance(data, BytesIO) else data
-        return UnsignedInt24(int.from_bytes(data, "big", signed=False))
+        return UnsignedInt24(int.from_bytes(data, "little", signed=False))
 
     def __repr__(self):
         return f"UnsignedInt24({self.value})"
