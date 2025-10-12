@@ -21,4 +21,4 @@ class Magic(RakNetDataType):
         return Magic()
 
     def __repr__(self):
-        return "Magic()"
+        return f"Magic({self.data})"
