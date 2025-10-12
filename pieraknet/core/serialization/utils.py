@@ -1,1 +1,0 @@
-MAGIC = bytes.fromhex("00ffff00fefefefefdfdfdfd12345678")

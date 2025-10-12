@@ -4,10 +4,8 @@ from typing import Self
 
 class BasePacket(ABC):
     @abstractmethod
-    def serialize(self) -> bytes:
-        ...
-    
+    def serialize(self) -> bytes: ...
+
     @abstractmethod
     @classmethod
-    def deserialize(cls, data: bytes) -> Self:
-        ...
+    def deserialize(cls, data: bytes) -> Self: ...
