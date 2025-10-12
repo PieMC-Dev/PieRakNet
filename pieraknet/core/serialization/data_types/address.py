@@ -122,7 +122,7 @@ class AddressV6(RakNetDataType):
 
 class AddressUnion(RakNetDataType):
     byte_size = None
-    
+
     def __init__(self, ip_version: int, address: AddressV4 | AddressV6):
         self.ip_version = ip_version
         self.ip_address = address

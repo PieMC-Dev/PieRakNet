@@ -8,5 +8,9 @@ from .integer import Integer as Integer
 from .unsigned_int24 import UnsignedInt24 as UnsignedInt24
 from .string import String as String
 from .magic import Magic as Magic, MAGIC as MAGIC
-from .address import AddressV4 as AddressV4, AddressV6 as AddressV6, AddressUnion as AddressUnion
+from .address import (
+    AddressV4 as AddressV4,
+    AddressV6 as AddressV6,
+    AddressUnion as AddressUnion,
+)
 from .base import RakNetDataUnion as RakNetDataUnion, RakNetDataType as RakNetDataType

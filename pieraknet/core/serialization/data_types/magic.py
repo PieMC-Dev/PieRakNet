@@ -7,8 +7,11 @@ MAGIC = bytes.fromhex("00ffff00fefefefefdfdfdfd12345678")
 class Magic(RakNetDataType):
     byte_size = 16
 
+    def __init__(self, data: bytes = MAGIC):
+        self.data = data
+
     def serialize(self, data: bytes) -> bytes:
-        return data
+        return self.data
 
     @classmethod
     def deserialize(cls, data: bytes | BytesIO, check: bool = True) -> "Magic":
