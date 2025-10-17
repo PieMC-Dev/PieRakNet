@@ -1,7 +1,7 @@
 from io import BytesIO
 from typing import cast
 from .base import BasePacket
-from ..serialization.data_types import Long, Magic, Byte, MAGIC, RakNetDataUnion
+from ..serialization.data_types import Long, Magic, Byte, MAGIC
 
 
 class UnconnectedPing(BasePacket):
@@ -35,21 +35,21 @@ class UnconnectedPing(BasePacket):
     ) -> "UnconnectedPing":
         data = data if isinstance(data, BytesIO) else BytesIO(data)
 
-        packet_data = RakNetDataUnion.deserialize(data, [Byte, Long, Magic, Long])
-
-        packet_id = cls.PACKET_IDS[0]
         if read_packet_id:
             packet_id, timestamp, magic, client_guid = cast(
-                tuple[int, int, bytes, int], packet_data.data_types
+                tuple[Byte, Long, Magic, Long],
+                (Byte + Long + Magic + Long).deserialize(data),
             )
             if packet_id not in cls.PACKET_IDS:
                 raise ValueError("Invalid packet ID")
         else:
             timestamp, magic, client_guid = cast(
-                tuple[int, bytes, int], packet_data.data_types
+                tuple[Long, Magic, Long], (Long + Magic + Long).deserialize(data)
             )
 
-        return UnconnectedPing(timestamp, client_guid, magic, packet_id)
+        return UnconnectedPing(
+            timestamp.value, client_guid.value, magic.data, packet_id.value
+        )
 
     def __repr__(self):
         return f"UnconnectedPing({self.timestamp}, {self.client_guid}, {self.magic}, {self.packet_id})"

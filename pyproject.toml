@@ -24,8 +24,13 @@ classifiers = [
 ]
 keywords = ["python", "python3", "raknet", "rak-net", "mcpe", "bedrock", "rak_net", "piemc", "pieraknet", "network", "protocol", "games"]
 urls = {"Homepage" = "https://github.com/PieMC-Dev/PieRakNet"}
+requires-python = ">=3.11"
 
 [dependency-groups]
 dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
     "ruff>=0.14.0",
+    "ty>=0.0.1a23",
+    "uv>=0.9.3",
 ]
