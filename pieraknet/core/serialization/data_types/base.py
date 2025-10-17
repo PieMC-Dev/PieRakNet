@@ -137,8 +137,8 @@ class RakNetDataType(ABC, metaclass=RakNetTypeMeta):
     @abstractmethod
     def serialize(self) -> bytes: ...
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def deserialize(cls, data: bytes | BytesIO) -> Self: ...
 
     @abstractmethod
