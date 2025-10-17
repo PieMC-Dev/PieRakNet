@@ -50,7 +50,7 @@ class AddressV4(RakNetDataType):
         return AddressV4(host, port)
 
     def __repr__(self):
-        return f"AddressV4({self.host}, {self.port})"
+        return f"AddressV4(host={self.host}, port={self.port})"
 
     def __str__(self) -> str:
         return ".".join(str(part) for part in self.host) + ":" + str(self.port)
@@ -213,7 +213,7 @@ class AddressV6(RakNetDataType):
         return AddressV6(family, port, flow_info, address, scope_id)
 
     def __repr__(self):
-        return f"AddressV6({self.family}, {self.port}, {self.flow_info}, {self.address}, {self.scope_id})"
+        return f"AddressV6(family={self.family}, port={self.port}, flow_info={self.flow_info}, address={self.address}, scope_id={self.scope_id})"
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, AddressV6):
@@ -254,7 +254,7 @@ class AddressUnion(RakNetDataType):
         return AddressUnion(ip_version, address)
 
     def __repr__(self):
-        return f"AddressUnion({self.ip_version}, {self.ip_address})"
+        return f"AddressUnion(ip_version={self.ip_version}, ip_address={repr(self.ip_address)})"
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, AddressUnion):

@@ -152,10 +152,15 @@ class RakNetDataType(ABC, metaclass=RakNetTypeMeta):
     def deserialize(cls, data: bytes | BytesIO) -> Self: ...
 
     @abstractmethod
-    def __repr__(self) -> str: ...
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({',  '.join(self.__dict__.values())})"
 
-    @abstractmethod
-    def __eq__(self, other: Self) -> bool: ...
+    def __eq__(self, other) -> bool:
+        if type(self) is type(other):
+            return False
+        if not hasattr(other, "__repr__"):
+            return False
+        return repr(self) == repr(other)
 
     @overload
     def __add__(self, other: bytes) -> bytes: ...
