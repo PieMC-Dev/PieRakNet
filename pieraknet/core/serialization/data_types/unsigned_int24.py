@@ -21,3 +21,8 @@ class UnsignedInt24(RakNetDataType):
 
     def __repr__(self):
         return f"UnsignedInt24({self.value})"
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, UnsignedInt24):
+            return False
+        return self.value == other.value

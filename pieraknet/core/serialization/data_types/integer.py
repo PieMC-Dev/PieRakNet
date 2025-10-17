@@ -19,3 +19,8 @@ class Integer(RakNetDataType):
 
     def __repr__(self):
         return f"Integer({self.value})"
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Integer):
+            return False
+        return self.value == other.value

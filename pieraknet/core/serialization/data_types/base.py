@@ -1,5 +1,5 @@
 from abc import ABC, ABCMeta, abstractmethod
-from typing import Self, Type, overload, cast
+from typing import Self, Type, overload, cast, Iterable
 from io import BytesIO
 
 
@@ -12,13 +12,13 @@ class RakNetDataUnion:
 
     @classmethod
     def deserialize(
-        cls, data: bytes | BytesIO, data_types: list[Type["RakNetDataType"]]
-    ) -> "RakNetDataUnion":
+        cls, data: bytes | BytesIO, data_types: Iterable[Type["RakNetDataType"]]
+    ) -> list["RakNetDataType"]:
         if not isinstance(data, BytesIO):
             data = BytesIO(data)
         return RakNetDataUnion(
             [data_type.deserialize(data) for data_type in data_types]
-        )
+        ).data_types
 
     def __repr__(self) -> str:
         return f"RakNetUnion({[', '.join([repr(data_type) for data_type in self.data_types])]})"
@@ -77,6 +77,11 @@ class RakNetDataUnion:
     def __getitem__(self, index: int) -> "RakNetDataType":
         return self.data_types[index]
 
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, RakNetDataUnion):
+            return False
+        return self.data_types == other.data_types
+
 
 class RakNetTypeUnion:
     def __init__(self, data_types: list[Type["RakNetDataType"]]):
@@ -94,7 +99,7 @@ class RakNetTypeUnion:
         instances = [dt(val) for dt, val in zip(self.data_types, values)]
         return RakNetDataUnion(instances)
 
-    def deserialize(self, data: bytes | BytesIO) -> RakNetDataUnion:
+    def deserialize(self, data: bytes | BytesIO) -> list["RakNetDataType"]:
         return RakNetDataUnion.deserialize(data, self.data_types)
 
     @property
@@ -104,6 +109,11 @@ class RakNetTypeUnion:
             return None
         byte_sizes_filtered: list[int] = [bs for bs in byte_sizes if bs is not None]
         return sum(byte_sizes_filtered)
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, RakNetDataUnion):
+            return False
+        return self.data_types == other.data_types
 
 
 class RakNetTypeMeta(ABCMeta):
@@ -143,6 +153,9 @@ class RakNetDataType(ABC, metaclass=RakNetTypeMeta):
 
     @abstractmethod
     def __repr__(self) -> str: ...
+
+    @abstractmethod
+    def __eq__(self, other: Self) -> bool: ...
 
     @overload
     def __add__(self, other: bytes) -> bytes: ...

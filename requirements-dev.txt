@@ -2,9 +2,13 @@
 #    uv export --format requirements.txt --no-hashes -o requirements-dev.txt -qq
 -e .
 colorama==0.4.6 ; sys_platform == 'win32'
-    # via pytest
+    # via
+    #   loguru
+    #   pytest
 iniconfig==2.1.0
     # via pytest
+loguru==0.7.3
+    # via pieraknet
 packaging==25.0
     # via pytest
 pluggy==1.6.0
@@ -19,3 +23,5 @@ ty==0.0.1a23
 typing-extensions==4.15.0 ; python_full_version < '3.13'
     # via pytest-asyncio
 uv==0.9.3
+win32-setctime==1.2.0 ; sys_platform == 'win32'
+    # via loguru

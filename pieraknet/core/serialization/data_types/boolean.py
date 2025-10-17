@@ -18,3 +18,8 @@ class Boolean(RakNetDataType):
 
     def __repr__(self):
         return f"Boolean({self.value})"
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Boolean):
+            return False
+        return self.value == other.value

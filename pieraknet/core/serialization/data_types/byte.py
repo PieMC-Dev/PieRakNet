@@ -18,3 +18,8 @@ class Byte(RakNetDataType):
 
     def __repr__(self):
         return f"Byte({self.value})"
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Byte):
+            return False
+        return self.value == other.value

@@ -10,7 +10,7 @@ class Magic(RakNetDataType):
     def __init__(self, data: bytes = MAGIC):
         self.data = data
 
-    def serialize(self, data: bytes) -> bytes:
+    def serialize(self) -> bytes:
         return self.data
 
     @classmethod
@@ -22,3 +22,8 @@ class Magic(RakNetDataType):
 
     def __repr__(self):
         return f"Magic({self.data})"
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Magic):
+            return False
+        return self.data == other.data
