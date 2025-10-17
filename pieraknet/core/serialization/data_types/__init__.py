@@ -13,4 +13,8 @@ from .address import (
     AddressV6 as AddressV6,
     AddressUnion as AddressUnion,
 )
-from .base import RakNetDataUnion as RakNetDataUnion, RakNetDataType as RakNetDataType
+from .base import (
+    RakNetDataUnion as RakNetDataUnion,
+    RakNetDataType as RakNetDataType,
+    RakNetTypeUnion as RakNetTypeUnion,
+)
