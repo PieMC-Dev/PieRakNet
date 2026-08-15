@@ -8,13 +8,14 @@ class BedrockServer:
         server.interface = interface
 
         server.start()
+        
+class GameInterface:
+    def on_game_packet(self, packet_body, connection):
+        print("Received game packet:", packet_body)
+        # Handle packages as wanted. (0xfe packets)
 
 if __name__ == '__main__':
     server = BedrockServer()
     server.main()
 
 
-class GameInterface:
-    def on_game_packet(self, packet_body, connection):
-        print("Received game packet:", packet_body)
-        # Handle packages as wanted. (0xfe packets)
