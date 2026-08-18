@@ -33,7 +33,6 @@ class BedrockServer:
             self.server.stop()
 
         except Exception:
-            logging.exception("Server crashed!")
             self.server.stop()
 
 
