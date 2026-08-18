@@ -32,8 +32,9 @@ class BedrockServer:
         except KeyboardInterrupt:
             self.server.stop()
 
-        except Exception:
+        except Exception as e:
             self.server.stop()
+            raise(e)
 
 
 if __name__ == "__main__":
