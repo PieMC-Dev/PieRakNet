@@ -18,8 +18,7 @@ class BedrockServer:
             ipv=4,
             logginglevel = "INFO",
             game_protocol_version=2168,
-            version_name="1.26.44",
-            portv6=19132
+            version_name="1.26.44"
         )
 
         self.server.interface = self.interface
