@@ -44,8 +44,8 @@ class Server:
             logger.addHandler(handler)
         self.logger = logger
         self.hostname = hostname
-        self.port = port
-        self.ipv = ipv
+        self.ipv = ipv             
+        self.port = {4: port, 6: portv6}[self.ipv]
         self.game = game
         self.name = name
         self.game_protocol_version = game_protocol_version
@@ -55,7 +55,6 @@ class Server:
         self.modt = modt
         self.game_mode = game_mode
         self.game_mode_number = game_mode_number
-        self.portv6 = portv6
         self.raknet_protocol_version = 11
         self.guid = random.randint(0, sys.maxsize - 1)
         self.connections = []
@@ -91,7 +90,7 @@ class Server:
         player_count = len(self.connections)
         response_data = f"{self.game};{self.name};{self.game_protocol_version};{self.version_name};" \
                f"{player_count};{self.max_player_count};{self.server_id};{self.modt};" \
-               f"{self.game_mode};{self.game_mode_number};{self.portv6};{self.port}"
+               f"{self.game_mode};{self.game_mode_number};{self.port}"
         return response_data
 
     def get_connection(self, address):
