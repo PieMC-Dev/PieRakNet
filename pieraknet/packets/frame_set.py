@@ -24,21 +24,25 @@ class FrameSetPacket(Packet):
             self.frames.append(frame)
 
     def decode_frame(self, buffer):
+        # FIX: Only read frame indexes that are actually present based on the frame's reliability type; previously they were read unconditionally, causing buffer underflow.
+        flags = buffer.read_byte()
+        length_in_bits = buffer.read_unsigned_short()
+
+        reliability_type = (flags >> 5) & 0x07
+        is_fragmented = (flags >> 4) & 0x01
+
         frame = {
-            'flags': buffer.read_byte(),
-            'length_in_bits': buffer.read_unsigned_short(),
-            'reliable_frame_index': buffer.read_uint24le(),
-            'sequenced_frame_index': buffer.read_uint24le(),
-            'ordered_frame_index': buffer.read_uint24le(),
-            'order_channel': buffer.read_byte(),
-            'compound_size': buffer.read_int(),
-            'compound_id': buffer.read_short(),
-            'index': buffer.read_int(),
+            'flags': flags,
+            'length_in_bits': length_in_bits,
+            'reliable_frame_index': 0,
+            'sequenced_frame_index': 0,
+            'ordered_frame_index': 0,
+            'order_channel': 0,
+            'compound_size': 0,
+            'compound_id': 0,
+            'index': 0,
             'body': b''
         }
-
-        reliability_type = (frame['flags'] >> 5) & 0x07
-        is_fragmented = (frame['flags'] >> 4) & 0x01
 
         if reliability_type in {2, 3, 4, 6, 7}:
             frame['reliable_frame_index'] = buffer.read_uint24le()
@@ -55,7 +59,8 @@ class FrameSetPacket(Packet):
             frame['compound_id'] = buffer.read_short()
             frame['index'] = buffer.read_int()
 
-        body_length = (frame['length_in_bits'] + 7) // 8
+        body_length = (length_in_bits + 7) // 8
+
         frame['body'] = buffer.read(body_length)
 
         return frame
