@@ -32,8 +32,7 @@ class Server:
                  max_player_count=20, 
                  modt="Powered by PieRakNet", 
                  game_mode="survival", 
-                 game_mode_number=1, 
-                 portv6=19133
+                 game_mode_number=1
                  ):
         if logger is None:
             logger = logging.getLogger("PieRakNet")
@@ -44,8 +43,8 @@ class Server:
             logger.addHandler(handler)
         self.logger = logger
         self.hostname = hostname
+        self.port = port
         self.ipv = ipv             
-        self.port = {4: port, 6: portv6}[self.ipv]
         self.game = game
         self.name = name
         self.game_protocol_version = game_protocol_version
